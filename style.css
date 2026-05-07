@@ -1,0 +1,446 @@
+
+        /* --- 全体設定 --- */
+        body {
+            font-family: 'M PLUS Rounded 1c', "Hiragino Maru Gothic ProN", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+            margin: 0;
+            padding: 0;
+            /* さらに緑を強調した鮮やかな新緑グラデーション */
+            background: linear-gradient(135deg, #27ae60, #2ecc71, #a2d9b5, #1abc9c);
+            background-size: 400% 400%;
+            animation: gradientBG 20s ease infinite;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* --- 新しい上下レイアウト用 --- */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background-color: rgba(39, 174, 96, 0.9); /* 濃い緑 */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 4px solid #1a3a28;
+            box-shadow: 0 8px 0px rgba(26, 58, 40, 0.3);
+            color: white;
+            z-index: 10;
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .apps-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .horizontal-btn {
+            width: 90px;
+            height: 90px;
+            border-radius: 20px;
+        }
+
+        .horizontal-btn .app-icon {
+            font-size: 2.5rem;
+        }
+
+        .horizontal-btn span {
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-top: 5px;
+            color: #ffffff;
+            text-shadow: 1px 1px 0px #1a3a28;
+        }
+
+        /* --- トップバー：ヘッダー部分 --- */
+        .header {
+            text-align: left;
+            margin-bottom: 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #ffffff;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 0px #1a3a28;
+        }
+
+        #current-time {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: #fcf6bd; /* 時計は黄色アクセント */
+            letter-spacing: 2px;
+            margin-top: 0;
+            text-shadow: 2px 2px 0px #1a3a28;
+        }
+
+        /* --- 左側：アプリボタン --- */
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            flex-grow: 1;
+            margin-bottom: 25px;
+        }
+        
+        .app-btn {
+            border-radius: 25px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 6px 6px 0px #1a3a28;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 4px solid #1a3a28;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* アプリボタンを色鮮やかな深緑に統一 */
+        #btn-1 { background-color: #2ecc71; }
+        #btn-2 { background-color: #27ae60; }
+        #btn-3 { background-color: #1abc9c; }
+        #btn-4 { background-color: #16a085; }
+        #btn-5 { background-color: #2ecc71; }
+        
+        #btn-6 { background-color: #27ae60; }
+        #btn-7 { background-color: #1abc9c; }
+        #btn-8 { background-color: #16a085; }
+        #btn-9 { background-color: #2ecc71; }
+        
+        .empty-btn { background-color: transparent; box-shadow: none; border-color: transparent; }
+
+        .app-btn:hover {
+            transform: translateY(-5px) scale(1.05) rotate(1deg);
+            box-shadow: 8px 8px 0px #1a3a28;
+        }
+
+        .app-btn.active {
+            transform: translateY(4px) scale(0.98) translate(4px, 4px);
+            box-shadow: 0px 0px 0px #1a3a28;
+        }
+        
+        .key-badge {
+            position: absolute;
+            top: -12px;
+            left: -12px;
+            background-color: #fcf6bd;
+            color: #1a3a28;
+            font-size: 1.2rem;
+            font-weight: 900;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 3px solid #1a3a28;
+            box-shadow: 3px 3px 0px #1a3a28;
+            z-index: 2;
+        }
+
+        .app-icon {
+            font-size: 4.5rem;
+            filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.25));
+        }
+
+        /* --- トップバー：カウントダウン部分 --- */
+        .countdown-box {
+            background: linear-gradient(135deg, #78e08f, #f6e58d); /* 緑と黄色のポップな配色 */
+            color: #2d5a3f;
+            padding: 10px 25px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(120, 224, 143, 0.4);
+            border: 3px solid #ffffff;
+            position: relative;
+            z-index: 20; /* 画像より手前にする */
+            min-width: 250px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .countdown-box h2 {
+            margin: 0 0 2px 0;
+            font-size: 1.1rem;
+            opacity: 0.9;
+            color: #2d5a3f;
+        }
+        #countdown-timer {
+            font-size: 2.2rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-shadow: 1px 1px 0px rgba(255,255,255,0.5);
+            color: #27ae60;
+        }
+
+        /* --- 時間割セレクター（普段は見せないようにしてもOK） --- */
+        .schedule-selector {
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .schedule-selector select {
+            padding: 8px 15px;
+            font-size: 1.2rem;
+            border-radius: 12px;
+            border: 3px solid #FF6B6B;
+            background-color: #ffffff;
+            color: #2c3e50;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            outline: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+        }
+
+        /* --- 右側：オート・インフォメーション --- */
+        .info-card {
+            background-color: rgba(255, 255, 255, 0.85); /* 半透明グラスモーフィズム */
+            backdrop-filter: blur(10px);
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            border-radius: 40px;
+            padding: 30px;
+            height: 100%;
+            box-shadow: 0 15px 35px rgba(45,90,63,0.1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 10;
+        }
+
+        #right-panel-title {
+            font-size: 2.2rem;
+            color: #27ae60;
+            border-bottom: 4px dashed #78e08f; /* 点線にして可愛く */
+            padding-bottom: 15px;
+            margin-top: 0;
+            text-align: center;
+        }
+        #auto-info-content {
+            font-size: 1.8rem;
+            margin-top: 20px;
+            line-height: 1.6;
+            color: #475569;
+            flex-grow: 1;
+        }
+
+        /* --- ⚙️ 管理者用隠し画面 --- */
+        .admin-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(8px);
+        }
+        .admin-content {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 20px;
+            width: 60%;
+            max-width: 800px;
+            color: #2c3e50;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        }
+        .admin-content h2 {
+            margin-top: 0;
+            color: #E74C3C;
+            border-bottom: 3px solid #E74C3C;
+            padding-bottom: 10px;
+        }
+        .setting-item {
+            margin: 25px 0;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .admin-btn {
+            background-color: #34495e;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .admin-btn.danger { background-color: #E74C3C; }
+
+        /* --- 公式キャラクター画像（マスコット）の切り抜き実装 --- */
+        .mascot-badge {
+            position: absolute;
+            width: 120px; /* ★邪魔にならないように小さく（180px -> 120px） */
+            height: 120px;
+            border-radius: 50%; /* 完全な丸に切り抜き */
+            background-image: url('character.jpg');
+            background-repeat: no-repeat;
+            border: 5px solid #ffffff;
+            box-shadow: 0 8px 18px rgba(45,90,63,0.25);
+            z-index: 1000;
+            cursor: grab;
+            opacity: 0.7; /* ★普段は少し透けさせて邪魔にならないように */
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .mascot-badge:hover {
+            opacity: 1; /* マウスを乗せるとハッキリ表示される */
+            transform: scale(1.05); /* 少し大きく */
+        }
+
+        .mascot-badge:active {
+            cursor: grabbing;
+            transform: scale(1.08); /* つかんだ時に大きくプニッとする */
+            animation: none !important;
+        }
+
+        /* 新☆ぐーちゃん（画像の左下付近を丸くズームして切り取る） */
+        #shingu-badge {
+            background-size: 320%; 
+            background-position: 23% 78%; /* 顔部分に合わせる（微調整可） */
+            top: 20px; /* 邪魔にならないように上の方へ配置 */
+            left: 20px;
+            animation: float-anim 5s infinite ease-in-out;
+        }
+
+        /* 松宮さん（画像の右下付近を丸くズームして切り取る） */
+        #matsumiya-badge {
+            background-size: 340%; 
+            background-position: 80% 55%; /* Y座標を下げて（数値を小さくして）顔を写す */
+            top: 20px;
+            right: 20px; /* 邪魔にならないように右上の端へ配置 */
+            animation: float-anim 5.5s infinite ease-in-out reverse;
+        }
+
+        @keyframes float-anim {
+            0% { transform: translateY(0px) rotate(-3deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+            100% { transform: translateY(0px) rotate(-3deg); }
+        }
+
+        /* --- ポップアップウィンドウ機能 --- */
+        .popup-window {
+            position: absolute;
+            top: 15%;
+            left: 15%;
+            width: 800px;
+            height: 600px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            z-index: 9999;
+            overflow: hidden;
+            border: 2px solid #34495e;
+            resize: both;
+            min-width: 400px;
+            min-height: 300px;
+        }
+
+        .popup-header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+            user-select: none;
+        }
+
+        #popup-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .popup-close-btn {
+            background: #E74C3C;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            width: 30px;
+            height: 30px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .popup-close-btn:hover {
+            background: #c0392b;
+        }
+
+        .popup-content {
+            flex-grow: 1;
+            position: relative;
+        }
+
+        #popup-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        .popup-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            z-index: 10;
+        }
+
+        /* --- 派手な画面切り替えオーバーレイ --- */
+        .transition-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .transition-circle {
+            width: 10vmin;
+            height: 10vmin;
+            /* 新緑祭らしい、フレッシュで優しい緑の広がり */
+            background: radial-gradient(circle, #f4fdf6 0%, #c8eed6 60%, #82cda0 100%);
+            border-radius: 50%;
+            transform: scale(0);
+            opacity: 0;
+        }
+
+        .transition-circle.animate-in {
+            /* 0.6秒でドカンと拡大して消えるアニメーション */
+            animation: flashCircleIn 0.6s cubic-bezier(0.8, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes flashCircleIn {
+            0% { transform: scale(0); opacity: 1; }
+            50% { transform: scale(30); opacity: 1; }
+            100% { transform: scale(30); opacity: 0; display: none; }
+        }

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Meet プレイヤー</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', sans-serif;
+            background: transparent;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 28px 20px;
+            color: #333;
+        }
+
+        /* ===== ヘッダー ===== */
+        .header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 900;
+            background: linear-gradient(90deg, #27ae60, #f1c40f, #3498db);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 0.05em;
+        }
+        .header p {
+            color: rgba(0,0,0,0.6);
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        /* ===== 入力エリア ===== */
+        .input-area {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            max-width: 820px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .input-area input[type="text"] {
+            flex: 1;
+            min-width: 260px;
+            padding: 13px 20px;
+            font-size: 1rem;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            border: 2px solid rgba(0,0,0,0.18);
+            border-radius: 50px;
+            background: rgba(255,255,255,0.7);
+            color: #333;
+            outline: none;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+        .input-area input::placeholder { color: rgba(0,0,0,0.38); }
+        .input-area input:focus {
+            border-color: #0f9d58;
+            background: #fff;
+            box-shadow: 0 0 18px rgba(15, 157, 88, 0.3);
+        }
+
+        .btn-load {
+            padding: 13px 26px;
+            font-size: 1rem;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            font-weight: 700;
+            background: linear-gradient(135deg, #0f9d58, #00c853);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 18px rgba(15, 157, 88, 0.4);
+            white-space: nowrap;
+        }
+        .btn-load:hover {
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: 0 8px 28px rgba(15, 157, 88, 0.5);
+        }
+        .btn-load:active { transform: scale(0.97); }
+
+        .btn-login {
+            padding: 13px 26px;
+            font-size: 1rem;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fbbc05, #f39c12);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 18px rgba(243, 156, 18, 0.4);
+            white-space: nowrap;
+        }
+        .btn-login:hover {
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: 0 8px 28px rgba(243, 156, 18, 0.5);
+        }
+        .btn-login:active { transform: scale(0.97); }
+
+        #player-container {
+            width: 100%;
+            max-width: 820px;
+            flex-grow: 1;
+            display: none; /* JSで 'flex' に切り替わります */
+            flex-direction: column; /* 縦方向に伸ばすために必須 */
+            animation: fadeInUp 0.4s ease;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .player-wrap {
+            position: relative;
+            width: 100%;
+            flex-grow: 1; /* 余った高さをすべて使う */
+            min-height: 450px;
+            border-radius: 18px;
+            overflow: hidden;
+            background: #222; /* Zoomの黒に合わせて背景を暗く */
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
+        #meet-embed {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        /* ===== 接続完了後の全画面化用クラス ===== */
+        body.connected {
+            padding: 0;
+            background: #000; /* 余白も真っ黒にして完全なシネマモードへ */
+        }
+        body.connected .header,
+        body.connected .input-area,
+        body.connected #guide {
+            display: none !important;
+        }
+        body.connected #player-container {
+            max-width: 100%;
+            width: 100vw;
+            height: 100vh;
+        }
+        body.connected .player-wrap {
+            border-radius: 0;
+            min-height: 100vh;
+            background: #000;
+            box-shadow: none;
+        }
+
+        /* ===== 初期ガイド ===== */
+        #guide {
+            text-align: center;
+            color: rgba(0,0,0,0.5);
+            margin-top: 30px;
+        }
+        #guide .guide-icon { font-size: 4rem; display: block; margin-bottom: 14px; }
+        #guide p { font-size: 1rem; line-height: 1.9; }
+
+        /* ===== エラーメッセージ ===== */
+        #input-error {
+            display: none;
+            color: #d32f2f;
+            background: rgba(211, 47, 47, 0.1);
+            border: 1px solid rgba(211, 47, 47, 0.3);
+            border-radius: 10px;
+            padding: 10px 18px;
+            font-size: 0.95rem;
+            text-align: center;
+            max-width: 820px;
+            width: 100%;
+            margin-bottom: 16px;
+            animation: fadeInUp 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>🎥 会場中継画面</h1>
+        <p>Zoom または Google Meet のURLを入力してください</p>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="meet-url" placeholder="https://meet.google.com/xxx-xxxx-xxx">
+        <button class="btn-load" onclick="loadMeet()">▶ 接続する</button>
+    </div>
+
+    <div id="input-error"></div>
+
+    <!-- プレイヤー -->
+    <div id="player-container">
+        <div class="player-wrap">
+            <iframe id="meet-embed" src="" allow="camera; microphone; display-capture; fullscreen; autoplay; clipboard-read; clipboard-write; speaker"></iframe>
+        </div>
+    </div>
+
+    <!-- 初期ガイド -->
+    <div id="guide">
+        <span class="guide-icon">💻</span>
+        <p>Zoom等のURL（https://zoom.us/j/...）を入力欄に貼り付けて<br>「接続する」ボタンを押してください</p>
+    </div>
+
+    <script>
+        function showInputError(msg) {
+            const el = document.getElementById('input-error');
+            el.innerHTML = msg;
+            el.style.display = 'block';
+        }
+
+        function hideInputError() {
+            document.getElementById('input-error').style.display = 'none';
+        }
+
+        function loadMeet() {
+            let urlInput = document.getElementById('meet-url').value.trim();
+
+            if (!urlInput) {
+                showInputError('⚠️ URLを入力してください！');
+                return;
+            }
+
+            if (!urlInput.startsWith('http')) {
+                urlInput = 'https://' + urlInput;
+            }
+
+            // ==========================================
+            // ★ZoomのURLだった場合、強制的に「ブラウザ内蔵版（Webクライアント）」のURLに変換する
+            // 通常のURL（/j/）を開くと、Zoomアプリを勝手に起動しようとして画面が真っ白になるため。
+            // ==========================================
+            if (urlInput.includes('zoom.us/j/')) {
+                try {
+                    const urlObj = new URL(urlInput);
+                    // URLから会議ID（123456789 など）を抽出
+                    const meetingId = urlObj.pathname.split('/j/')[1].replace('/', '');
+                    // URLからパスワードを抽出
+                    const pwd = urlObj.searchParams.get('pwd') || '';
+                    
+                    // Webクライアント専用URLに再構築
+                    urlInput = `https://app.zoom.us/wc/join/${meetingId}${pwd ? '?pwd=' + pwd : ''}`;
+                    console.log('Zoom URLをWeb Client用に変換しました:', urlInput);
+                } catch(e) {
+                    console.error('Zoom URL変換エラー', e);
+                }
+            }
+
+            hideInputError();
+
+            // ==========================================
+            // ★接続完了後の画面切り替え（全画面化）
+            // ==========================================
+            document.body.classList.add('connected');
+            document.getElementById('player-container').style.display = 'flex';
+
+            // URLをiframeにセットして開く
+            document.getElementById('meet-embed').src = urlInput;
+        }
+
+        function openLogin() {
+            // Googleアカウントへのログイン用ポップアップを開く
+            window.open('https://accounts.google.com/ServiceLogin', 'GoogleLoginPopup', 'width=600,height=800,scrollbars=yes');
+        }
+
+        // Enterキー対応
+        document.getElementById('meet-url').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') loadMeet();
+        });
+
+        // ペースト自動読み込み
+        document.getElementById('meet-url').addEventListener('paste', function() {
+            setTimeout(() => {
+                const val = this.value.trim();
+                // meetのURLっぽかったら自動読み込み
+                if (val.includes('meet.google.com')) loadMeet();
+            }, 100);
+        });
+    </script>
+</body>
+</html>
