@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新緑祭 模擬店・メニュー表</title>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', sans-serif;
+            background: transparent;
+            color: #2d4a3e;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ===== ヘッダー ===== */
+        .page-header {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: #ffffff;
+            text-shadow: 1px 1px 0px #1a3a28;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            box-shadow: 0 6px 0px rgba(26, 58, 40, 0.3);
+            border-bottom: 4px solid #1a3a28;
+        }
+        .page-header h1 {
+            font-size: 1.4rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-shadow: 1px 1px 0 rgba(0,0,0,0.15);
+        }
+        .header-sub {
+            font-size: 0.85rem;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+        }
+
+        /* ===== メインエリア ===== */
+        .main-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px 20px 10px;
+            scrollbar-width: thin;
+            scrollbar-color: #f5cba7 transparent;
+        }
+        .main-area::-webkit-scrollbar { width: 6px; }
+        .main-area::-webkit-scrollbar-thumb { background: #f5cba7; border-radius: 3px; }
+
+        /* ===== 模擬店グリッド ===== */
+        .stores-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        .store-card {
+            background: rgba(39, 174, 96, 0.95);
+            color: #ffffff;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 6px 6px 0px #1a3a28;
+            border: 4px solid #1a3a28;
+            animation: cardIn 0.3s ease;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .store-card:hover {
+            transform: translateY(-4px) rotate(-1deg);
+            box-shadow: 8px 8px 0px #1a3a28;
+        }
+        @keyframes cardIn {
+            from { opacity:0; transform: scale(0.96); }
+            to   { opacity:1; transform: scale(1);    }
+        }
+
+        .store-header {
+            padding: 14px 18px 12px;
+            color: white;
+            position: relative;
+        }
+        .store-class { font-size: 0.8rem; opacity: 0.85; font-weight: 700; }
+        .store-name  { font-size: 1.2rem; font-weight: 900; margin-top: 2px; }
+        .store-location {
+            font-size: 0.8rem;
+            background: rgba(255,255,255,0.25);
+            padding: 2px 10px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 4px;
+        }
+
+        /* カラーテーマ */
+        .theme-red    .store-header { background: linear-gradient(135deg,#e74c3c,#c0392b); }
+        .theme-orange .store-header { background: linear-gradient(135deg,#e67e22,#d35400); }
+        .theme-yellow .store-header { background: linear-gradient(135deg,#f1c40f,#f39c12); color:#333; }
+        .theme-green  .store-header { background: linear-gradient(135deg,#27ae60,#1e8449); }
+        .theme-blue   .store-header { background: linear-gradient(135deg,#2980b9,#1a5276); }
+        .theme-purple .store-header { background: linear-gradient(135deg,#8e44ad,#6c3483); }
+        .theme-pink   .store-header { background: linear-gradient(135deg,#e91e63,#c2185b); }
+        .theme-teal   .store-header { background: linear-gradient(135deg,#00897b,#00695c); }
+
+        /* メニューアイテムリスト */
+        .menu-list { padding: 10px 0 6px; }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 9px 18px;
+            border-bottom: 1px solid #f5f5f5;
+            transition: background 0.15s;
+        }
+        .menu-item:last-child { border-bottom: none; }
+        .menu-item:hover { background: #fafafa; }
+
+        .menu-item.sold-out .menu-item-name,
+        .menu-item.sold-out .menu-item-price { opacity: 0.4; text-decoration: line-through; }
+        .menu-item.sold-out .sold-label { display: inline-block; }
+
+        .menu-item-left { display: flex; align-items: center; gap: 8px; flex: 1; }
+        .menu-item-emoji { font-size: 1.2rem; flex-shrink: 0; }
+        .menu-item-name  { font-size: 0.95rem; font-weight: 700; color: #2c3e50; }
+        .sold-label {
+            display: none;
+            font-size: 0.7rem;
+            background: #e74c3c;
+            color: white;
+            padding: 1px 7px;
+            border-radius: 10px;
+            font-weight: 700;
+        }
+        .menu-item-price {
+            font-size: 1rem;
+            font-weight: 900;
+            color: #e67e22;
+            white-space: nowrap;
+        }
+
+        /* 空状態 */
+        .no-items {
+            padding: 16px 18px;
+            color: #bbb;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        /* ===== 全体の空状態 ===== */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: #bbb;
+        }
+        .empty-state .empty-icon { font-size: 4rem; margin-bottom: 12px; }
+        .empty-state p { font-size: 1rem; line-height: 1.9; }
+
+        /* ===== 管理者モーダル ===== */
+        .admin-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 9999;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            overflow-y: auto;
+            backdrop-filter: blur(6px);
+        }
+        .admin-overlay.open { display: flex; }
+
+        .admin-modal {
+            background: white;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 760px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            margin: auto;
+        }
+        .admin-modal h2 {
+            font-size: 1.4rem;
+            color: #27ae60;
+            border-bottom: 3px solid #27ae60;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .admin-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+        .admin-tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 700;
+            background: #f0f0f0;
+            color: #888;
+            border: none;
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .admin-tab.active { background: #27ae60; color: white; }
+
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 0.9rem; font-weight: 700; color: #555; margin-bottom: 4px; }
+        .form-row { display: flex; gap: 10px; }
+        .form-row .form-group { flex: 1; }
+
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 9px 12px;
+            border: 2px solid #dde;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #27ae60;
+        }
+
+        .btn-add {
+            background: linear-gradient(135deg, #27ae60, #bde0fe);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .btn-add:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(230,126,34,0.4); }
+
+        /* カラー選択 */
+        .color-picker { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+        .color-chip {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: transform 0.15s;
+        }
+        .color-chip:hover { transform: scale(1.2); }
+        .color-chip.selected { border-color: #333; transform: scale(1.2); }
+        .chip-red    { background: linear-gradient(135deg,#e74c3c,#c0392b); }
+        .chip-orange { background: linear-gradient(135deg,#e67e22,#d35400); }
+        .chip-yellow { background: linear-gradient(135deg,#f1c40f,#f39c12); }
+        .chip-green  { background: linear-gradient(135deg,#27ae60,#1e8449); }
+        .chip-blue   { background: linear-gradient(135deg,#2980b9,#1a5276); }
+        .chip-purple { background: linear-gradient(135deg,#8e44ad,#6c3483); }
+        .chip-pink   { background: linear-gradient(135deg,#e91e63,#c2185b); }
+        .chip-teal   { background: linear-gradient(135deg,#00897b,#00695c); }
+
+        /* 管理リスト */
+        .admin-store-list { margin-top: 16px; }
+        .admin-store-item {
+            background: #f8f8f8;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+        }
+        .admin-store-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .admin-store-name { font-weight: 800; font-size: 1rem; }
+        .admin-store-class { font-size: 0.8rem; color: #888; margin-left: 6px; }
+
+        .admin-menu-sub { font-size: 0.85rem; color: #666; }
+        .admin-menu-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-top: 1px solid #eee;
+            margin-top: 4px;
+        }
+
+        .btn-sm {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 3px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-family: inherit;
+            margin-left: 6px;
+        }
+        .btn-sm.sold { background: #f39c12; }
+        .btn-sm.green { background: #27ae60; }
+
+        .btn-close {
+            background: #95a5a6;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-family: inherit;
+            margin-top: 16px;
+        }
+        .data-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+        .btn-export { background: #16a085; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-family: inherit; }
+        .btn-import-label { background: #8e44ad; color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+        .btn-reset  { background: #e74c3c; color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-family: inherit; }
+
+        select#in-store-sel { margin-bottom: 0; }
+
+        /* ===== 管理ボタン（右下固定） ===== */
+        .fab-admin {
+            position: fixed;
+            bottom: 18px;
+            right: 18px;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: #fcf6bd;
+            color: #1a3a28;
+            font-size: 1.6rem;
+            border: 4px solid #1a3a28;
+            cursor: pointer;
+            box-shadow: 4px 4px 0px #1a3a28;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .fab-admin:hover {
+            transform: scale(1.1) rotate(20deg);
+            background: #f1c40f;
+            box-shadow: 6px 6px 0px #1a3a28;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="page-header">
+        <h1>🍽️ 模擬店・メニュー表</h1>
+        <div class="header-sub">新緑祭 2026</div>
+    </div>
+
+    <div class="main-area">
+        <div class="stores-grid" id="stores-grid">
+            <!-- JSで生成 -->
+        </div>
+    </div>
+
+    <!-- 右下の管理ボタン -->
+    <button class="fab-admin" onclick="openAdmin()" title="管理者モード（Shift+Ctrl）">⚙️</button>
+
+    <!-- ===== 管理者モーダル ===== -->
+    <div class="admin-overlay" id="admin-overlay">
+        <div class="admin-modal">
+            <h2>⚙️ メニュー管理</h2>
+
+            <div class="admin-tabs">
+                <button class="admin-tab active" onclick="switchTab('tab-store')">🏪 出店を追加</button>
+                <button class="admin-tab"        onclick="switchTab('tab-item')" >🍜 メニューを追加</button>
+                <button class="admin-tab"        onclick="switchTab('tab-list')" >📋 一覧・編集</button>
+            </div>
+
+            <!-- 出店追加タブ -->
+            <div class="tab-pane active" id="tab-store">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>🏫 クラス名</label>
+                        <input type="text" id="s-class" placeholder="例：1年A組">
+                    </div>
+                    <div class="form-group">
+                        <label>🏪 出店名・企画名</label>
+                        <input type="text" id="s-name" placeholder="例：たこ焼き屋さん">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>📍 場所（任意）</label>
+                    <input type="text" id="s-loc" placeholder="例：第2棟1階 廊下">
+                </div>
+                <div class="form-group">
+                    <label>🎨 カラーテーマ</label>
+                    <div class="color-picker">
+                        <div class="color-chip chip-red"    data-color="red"    onclick="selectColor(this)"></div>
+                        <div class="color-chip chip-orange selected" data-color="orange" onclick="selectColor(this)"></div>
+                        <div class="color-chip chip-yellow" data-color="yellow" onclick="selectColor(this)"></div>
+                        <div class="color-chip chip-green"  data-color="green"  onclick="selectColor(this)"></div>
+                        <div class="color-chip chip-blue"   data-color="blue"   onclick="selectColor(this)"></div>
+                        <div class="color-chip chip-purple" data-color="purple" onclick="selectColor(this)"></div>
+                        <div class="color-chip chip-pink"   data-color="pink"   onclick="selectColor(this)"></div>
+                        <div class="color-chip chip-teal"   data-color="teal"   onclick="selectColor(this)"></div>
+                    </div>
+                </div>
+                <button class="btn-add" onclick="addStore()">＋ 出店を追加</button>
+            </div>
+
+            <!-- メニュー追加タブ -->
+            <div class="tab-pane" id="tab-item">
+                <div class="form-group">
+                    <label>🏪 出店を選択</label>
+                    <select id="in-store-sel">
+                        <option value="">-- 出店を選んでください --</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="flex:0 0 60px;">
+                        <label>絵文字</label>
+                        <input type="text" id="i-emoji" placeholder="🍣" maxlength="2">
+                    </div>
+                    <div class="form-group">
+                        <label>🍜 メニュー名</label>
+                        <input type="text" id="i-name" placeholder="例：たこ焼き 6個入り">
+                    </div>
+                    <div class="form-group" style="flex:0 0 120px;">
+                        <label>💰 値段</label>
+                        <input type="text" id="i-price" placeholder="例：300円">
+                    </div>
+                </div>
+                <button class="btn-add" onclick="addItem()">＋ メニューを追加</button>
+            </div>
+
+            <!-- 一覧・編集タブ -->
+            <div class="tab-pane" id="tab-list">
+                <div class="admin-store-list" id="admin-store-list">
+                    <!-- JSで生成 -->
+                </div>
+                <div class="data-btns">
+                    <button class="btn-export" onclick="exportData()">💾 エクスポート</button>
+                    <label class="btn-import-label">
+                        📂 インポート
+                        <input type="file" accept=".json" style="display:none" onchange="importData(event)">
+                    </label>
+                    <button class="btn-reset" onclick="resetAll()">🗑️ 全削除</button>
+                </div>
+            </div>
+
+            <br>
+            <button class="btn-close" onclick="closeAdmin()">✕ 閉じる</button>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'shinryokusai_menu_v1';
+        let stores = []; // [{ id, class, name, location, color, items:[{id,emoji,name,price,soldOut}] }]
+        let selectedColor = 'orange';
+
+        // ===== 初期化 =====
+        function init() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try { stores = JSON.parse(saved); } catch(e) { stores = []; }
+            }
+            renderStores();
+        }
+
+        // ===== カラー選択 =====
+        function selectColor(el) {
+            document.querySelectorAll('.color-chip').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedColor = el.dataset.color;
+        }
+
+        // ===== タブ切り替え =====
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            if (tabId === 'tab-item') updateStoreSelect();
+            if (tabId === 'tab-list') renderAdminList();
+        }
+
+        // ===== 出店セレクト更新 =====
+        function updateStoreSelect() {
+            const sel = document.getElementById('in-store-sel');
+            sel.innerHTML = '<option value="">-- 出店を選んでください --</option>' +
+                stores.map(s => `<option value="${s.id}">${s.className} ${s.name}</option>`).join('');
+        }
+
+        // ===== 出店追加 =====
+        function addStore() {
+            const name = document.getElementById('s-name').value.trim();
+            if (!name) { alert('出店名は必須です'); return; }
+            stores.push({
+                id: Date.now(),
+                className: document.getElementById('s-class').value.trim(),
+                name: name,
+                location: document.getElementById('s-loc').value.trim(),
+                color: selectedColor,
+                items: []
+            });
+            save();
+            renderStores();
+            document.getElementById('s-class').value = '';
+            document.getElementById('s-name').value = '';
+            document.getElementById('s-loc').value = '';
+            alert('出店を追加しました！');
+        }
+
+        // ===== メニュー追加 =====
+        function addItem() {
+            const storeId = Number(document.getElementById('in-store-sel').value);
+            const name = document.getElementById('i-name').value.trim();
+            if (!storeId) { alert('出店を選択してください'); return; }
+            if (!name)    { alert('メニュー名は必須です'); return; }
+
+            const store = stores.find(s => s.id === storeId);
+            if (!store) return;
+            store.items.push({
+                id: Date.now(),
+                emoji: document.getElementById('i-emoji').value.trim() || '🍽️',
+                name: name,
+                price: document.getElementById('i-price').value.trim(),
+                soldOut: false
+            });
+            save();
+            renderStores();
+            document.getElementById('i-emoji').value = '';
+            document.getElementById('i-name').value = '';
+            document.getElementById('i-price').value = '';
+            alert('メニューを追加しました！');
+        }
+
+        // ===== 売り切れトグル =====
+        function toggleSoldOut(storeId, itemId) {
+            const store = stores.find(s => s.id === storeId);
+            if (!store) return;
+            const item = store.items.find(i => i.id === itemId);
+            if (!item) return;
+            item.soldOut = !item.soldOut;
+            save();
+            renderStores();
+            renderAdminList();
+        }
+
+        // ===== 削除 =====
+        function deleteStore(id) {
+            if (!confirm('この出店とメニューを全て削除しますか？')) return;
+            stores = stores.filter(s => s.id !== id);
+            save(); renderStores(); renderAdminList();
+        }
+        function deleteItem(storeId, itemId) {
+            const store = stores.find(s => s.id === storeId);
+            if (!store) return;
+            store.items = store.items.filter(i => i.id !== itemId);
+            save(); renderStores(); renderAdminList();
+        }
+
+        // ===== メイン描画 =====
+        function renderStores() {
+            const grid = document.getElementById('stores-grid');
+            if (stores.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🏪</div>
+                        <p>まだ出店が登録されていません。<br>右下の <b>⚙️ ボタン</b> または <b>Shift+Ctrl</b> で<br>管理者モードを開いて出店とメニューを追加してください。</p>
+                    </div>`;
+                return;
+            }
+            grid.innerHTML = stores.map(store => `
+                <div class="store-card theme-${store.color}">
+                    <div class="store-header">
+                        ${store.className ? `<div class="store-class">${escHtml(store.className)}</div>` : ''}
+                        <div class="store-name">${escHtml(store.name)}</div>
+                        ${store.location ? `<div class="store-location">📍 ${escHtml(store.location)}</div>` : ''}
+                    </div>
+                    <div class="menu-list">
+                        ${store.items.length === 0
+                            ? '<div class="no-items">メニュー準備中...</div>'
+                            : store.items.map(item => `
+                                <div class="menu-item ${item.soldOut ? 'sold-out' : ''}">
+                                    <div class="menu-item-left">
+                                        <span class="menu-item-emoji">${escHtml(item.emoji)}</span>
+                                        <span class="menu-item-name">${escHtml(item.name)}</span>
+                                        <span class="sold-label">SOLD OUT</span>
+                                    </div>
+                                    <span class="menu-item-price">${escHtml(item.price)}</span>
+                                </div>`).join('')
+                        }
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ===== 管理リスト描画 =====
+        function renderAdminList() {
+            const list = document.getElementById('admin-store-list');
+            if (stores.length === 0) {
+                list.innerHTML = '<div style="color:#aaa; text-align:center; padding:20px;">出店が登録されていません</div>';
+                return;
+            }
+            list.innerHTML = stores.map(store => `
+                <div class="admin-store-item">
+                    <div class="admin-store-header">
+                        <div>
+                            <span class="admin-store-name">${escHtml(store.name)}</span>
+                            <span class="admin-store-class">${escHtml(store.className)} ${store.location ? '/ ' + store.location : ''}</span>
+                        </div>
+                        <button class="btn-sm" onclick="deleteStore(${store.id})">出店削除</button>
+                    </div>
+                    ${store.items.length === 0
+                        ? '<div style="color:#bbb;font-size:0.85rem;">メニューなし</div>'
+                        : store.items.map(item => `
+                            <div class="admin-menu-row">
+                                <span>${escHtml(item.emoji)} ${escHtml(item.name)} — ${escHtml(item.price)}</span>
+                                <div>
+                                    <button class="btn-sm ${item.soldOut ? 'green' : 'sold'}" onclick="toggleSoldOut(${store.id},${item.id})">
+                                        ${item.soldOut ? '在庫あり' : '売切れ'}
+                                    </button>
+                                    <button class="btn-sm" onclick="deleteItem(${store.id},${item.id})">削除</button>
+                                </div>
+                            </div>`).join('')
+                    }
+                </div>
+            `).join('');
+        }
+
+        // ===== データ管理 =====
+        function save() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(stores));
+        }
+        function exportData() {
+            const blob = new Blob([JSON.stringify(stores, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `menu_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+        }
+        function importData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                try {
+                    const data = JSON.parse(ev.target.result);
+                    if (Array.isArray(data)) {
+                        stores = data;
+                        save(); renderStores(); renderAdminList();
+                        alert('インポートしました！');
+                    }
+                } catch { alert('ファイルの読み込みに失敗しました'); }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        }
+        function resetAll() {
+            if (!confirm('全ての出店・メニューを削除しますか？')) return;
+            stores = [];
+            save(); renderStores(); renderAdminList();
+        }
+
+        // ===== 管理者モーダル =====
+        function openAdmin() {
+            renderAdminList();
+            updateStoreSelect();
+            document.getElementById('admin-overlay').classList.add('open');
+        }
+        function closeAdmin() {
+            document.getElementById('admin-overlay').classList.remove('open');
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.shiftKey && e.ctrlKey) { openAdmin(); return; }
+            if (e.key === 'Escape') closeAdmin();
+        });
+        document.getElementById('admin-overlay').addEventListener('click', function(e) {
+            if (e.target === this) closeAdmin();
+        });
+
+        // ===== ユーティリティ =====
+        function escHtml(str) {
+            return String(str || '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+        }
+
+        init();
+    </script>
+</body>
+</html>

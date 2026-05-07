@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ポチナビ</title>
+    <style>
+        /* 全体の背景と文字色 */
+        body {
+            background-color: #63C79A;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        /* ホーム画面（巨大ボタンを並べる箱） */
+        #home-view {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: 80vh;
+            justify-content: center;
+        }
+
+        @media (min-width: 768px) {
+            #home-view {
+                flex-direction: row;
+            }
+        }
+
+        /* 画面いっぱいの巨大ワクワクボタン */
+        .giant-btn {
+            flex: 1;
+            background-color: #FFF;
+            border: 4px solid #2B5F45;
+            border-radius: 40px;
+            font-size: 32px;
+            font-weight: 900;
+            color: #2B5F45;
+            cursor: pointer;
+            box-shadow: 0px 10px 0px #2B5F45;
+            transition: all 0.1s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .giant-btn:hover {
+            background-color: #E8F5EE;
+            transform: translateY(-4px);
+            box-shadow: 0px 14px 0px #2B5F45;
+        }
+
+        .giant-btn:active {
+            transform: translateY(10px);
+            box-shadow: 0px 0px 0px #2B5F45;
+        }
+
+        .emoji-large {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        /* ★リスト画面のヘッダー（切り替えボタンとホームボタンを並べる） */
+        .list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        /* ★反対の選択肢へ切り替えるボタン（目立たせる） */
+        .switch-btn {
+            background-color: #FFF;
+            color: #2B5F45;
+            border: 3px solid #2B5F45;
+            border-radius: 15px;
+            padding: 12px 24px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0px 4px 0px #2B5F45;
+            transition: all 0.1s ease;
+        }
+
+        .switch-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0px 0px 0px #2B5F45;
+        }
+
+        /* ★小さなホームボタン */
+        .home-btn {
+            background-color: transparent;
+            color: #2B5F45;
+            border: 2px solid #2B5F45;
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .home-btn:active {
+            background-color: #2B5F45;
+            color: #FFF;
+        }
+
+        /* リストを囲む白いエリア */
+        #shop-list-container {
+            background-color: #F8FBF9;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            min-height: 100px;
+        }
+
+        /* 各店舗のカードなど */
+        .shop-card {
+            background-color: white;
+            border: 3px solid #2B5F45;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .shop-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2B5F45;
+            margin: 0 0 10px 0;
+        }
+
+        .status-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .status-box {
+            flex: 1;
+            background-color: #E8F5EE;
+            border: 1px solid #2B5F45;
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="home-view">
+        <button class="giant-btn" onclick="showList('飲食')">
+            <span class="emoji-large">🍚</span>
+            1. ごはん
+        </button>
+        <button class="giant-btn" onclick="showList('娯楽')">
+            <span class="emoji-large">🎪</span>
+            2. あそぶ
+        </button>
+    </div>
+
+    <div id="list-view" style="display: none;">
+
+        <div class="list-header">
+            <button id="dynamic-switch-btn" class="switch-btn"></button>
+
+            <button class="home-btn" onclick="goHome()">🏠 ホーム</button>
+        </div>
+
+        <div id="shop-list-container">
+            <div id="shop-list"></div>
+        </div>
+    </div>
+
+    <script>
+        const GAS_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=AWDtjMU-llE87F003FHPwkQLksXt6_wkPP8chy4w-lApDI3D0noXPW3RpkepkLSvNP_-iJIJT3lUZpk4RmJ-RI7in7xc24YP24xId2lJ_Vi_LYCDHju6TUqDLvX3dM3_msAnKcwf0gmKlAH3D_saSTl2_9W7HZPXFyzUeIYpZIXsRg4SRP1TF3W_dWgeLfbxi0nWswq8aBN9-p1eAY0nTghi6E2J86vASy4BcMk5Ahq_aEaLcdZX3L3vfPcAwyDCOC-_L-_3ZpdV_W4tgL7xto7bQufffNzGQw&lib=M_cZECxOMbmCKCJZOxjp3yEAGn4GPCQa5'; // ※書き換えてください
+
+        async function showList(category) {
+            document.getElementById('home-view').style.display = 'none';
+            document.getElementById('list-view').style.display = 'block';
+
+            // ★【ここがポイント！】切り替えボタンの文字と動作を動的に変える
+            const switchBtn = document.getElementById('dynamic-switch-btn');
+            if (category === '飲食') {
+                switchBtn.innerHTML = '🎪 遊びたい（娯楽）を見る ＞';
+                switchBtn.onclick = () => showList('娯楽'); // 娯楽を読み込むようにする
+            } else {
+                switchBtn.innerHTML = '🍚 お腹が空いた（飲食）を見る ＞';
+                switchBtn.onclick = () => showList('飲食'); // 飲食を読み込むようにする
+            }
+
+            const listElement = document.getElementById('shop-list');
+            listElement.innerHTML = '<p style="text-align:center; font-weight:bold;">データ読み込み中...⏳</p>';
+
+            try {
+                const response = await fetch(GAS_URL);
+                const allShops = await response.json();
+
+                const filteredShops = allShops.filter(shop => shop.大ジャンル === category);
+
+                if (filteredShops.length === 0) {
+                    listElement.innerHTML = `<p style="text-align:center;">「${category}」のデータがありません。</p>`;
+                    return;
+                }
+
+                filteredShops.sort(() => Math.random() - 0.5);
+
+                listElement.innerHTML = '';
+                filteredShops.forEach(shop => {
+                    listElement.innerHTML += `
+            <div class="shop-card">
+              <h3 class="shop-title">◆ ${shop.企画名} 【${shop.小ジャンル}】</h3>
+              <div class="status-container">
+                <div class="status-box">
+                  <span style="font-size:12px; color:#666;">込み具合</span><br>
+                  ${shop.込み具合}
+                </div>
+                <div class="status-box">
+                  <span style="font-size:12px; color:#666;">残り具合</span><br>
+                  ${shop.残り具合}
+                </div>
+              </div>
+              <p style="margin-top:15px; font-size:14px; font-weight:bold; color:#2B5F45;">📍道案内：${shop.道案内テキスト}</p>
+            </div>
+          `;
+                });
+
+            } catch (error) {
+                listElement.innerHTML = `<p style="color:red; text-align:center;">エラーが発生しました: ${error.message}</p>`;
+            }
+        }
+
+        function goHome() {
+            document.getElementById('list-view').style.display = 'none';
+            document.getElementById('home-view').style.display = 'flex';
+            document.getElementById('shop-list').innerHTML = '';
+        }
+    </script>
+</body>
+
+</html>
