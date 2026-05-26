@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>商店 待ち時間・在庫</title>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+            margin: 0;
+            padding: 60px 12px 20px;
+            min-height: 100vh;
+            min-height: 100dvh;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: #064e3b;
+            margin: 0 0 16px;
+            text-align: center;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .card {
+            background: #fff;
+            border: 3px solid #1a3a28;
+            border-radius: 14px;
+            box-shadow: 3px 3px 0 #1a3a28;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .title {
+            font-size: 0.95rem;
+            font-weight: 900;
+            color: #27ae60;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .info-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .info-box {
+            background: #e0f8e9;
+            border: 1.5px solid #1a3a28;
+            box-shadow: 1.5px 1.5px 0 #1a3a28;
+            border-radius: 8px;
+            padding: 4px 8px;
+            flex: 1;
+            text-align: center;
+            min-width: 60px;
+        }
+
+        .call-box { background: #fef9e7; }
+
+        .info-label {
+            font-size: 0.72rem;
+            font-weight: 900;
+            color: #1a3a28;
+            display: block;
+        }
+
+        .info-value {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: #1a3a28;
+        }
+
+        .call-value { color: #e74c3c; }
+
+        .loading {
+            text-align: center;
+            color: #888;
+            padding: 40px;
+            grid-column: 1/-1;
+        }
+
+        .update-bar {
+            text-align: right;
+            font-size: 0.78rem;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🛍️ 商店 待ち時間・在庫</h1>
+    <div class="update-bar" id="update-bar">更新中...</div>
+    <div class="grid" id="grid">
+        <div class="loading">🔄 読込中...</div>
+    </div>
+
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzgrgP84UFyJoEiBBzskZxBOV6BJQz0TbT-lEyntc_w-OpwjyEbe07sd_iP59OeUimWJQ/exec';
+        const CACHE_KEY = 'naviWaitTimeCache';
+
+        const ALL_PROJECTS = [
+            { key: "台湾ナイト☆楽しまナイト!!with甜甜", title: "台湾ナイト☆楽しまナイト!!with甜甜", waitTime: "準備中", callNumber: "", isFood: true },
+            { key: "からあげ屋 藪 〜うますぎて、いかんですなぁ〜", title: "からあげ屋 藪 〜うますぎて、いかんですなぁ〜", waitTime: "準備中", callNumber: "", isFood: true },
+            { key: "寄り道、道端", title: "寄り道、道端", waitTime: "準備中", callNumber: "", isFood: true },
+            { key: "トリックアートオアトリート", title: "トリックアートオアトリート", waitTime: "準備中", callNumber: "", isFood: true },
+            { key: "パンぱかぱーん", title: "パンぱかぱーん", waitTime: "準備中", callNumber: "", isFood: true },
+            { key: "ヤッラ クッル フランクフルト ナー！（2-4 of フランクフルトを食べよう！）", title: "ヤッラ クッル フランクフルト ナー！（2-4のフランクフルトを食べよう！）", waitTime: "準備中", callNumber: "", isFood: true }
+        ];
+
+        function renderCards(data) {
+            const map = {};
+            ALL_PROJECTS.forEach(p => { map[p.key] = { ...p }; });
+
+            (data || []).forEach(item => {
+                if (!item) return;
+                const cls = String(item.className || '').trim();
+                const ttl = String(item.title || '').trim();
+                const found = ALL_PROJECTS.find(p =>
+                    cls === p.key || ttl === p.key ||
+                    cls.includes(p.key) || p.key.includes(cls) ||
+                    ttl.includes(p.key) || p.key.includes(ttl)
+                );
+                if (found) {
+                    const proj = map[found.key];
+                    proj.waitTime = String(item.waitTime || '').trim();
+                    proj.callNumber = String(item.callNumber || '').trim();
+                }
+            });
+
+            const html = ALL_PROJECTS.map(p => {
+                const proj = map[p.key];
+                let displayValue = proj.waitTime || '準備中';
+                const num = Number(displayValue);
+                if (!isNaN(num) && displayValue !== '') {
+                    displayValue = num === 0 ? '在庫なし' : num + ' 個';
+                } else if (displayValue && displayValue !== '準備中') {
+                    displayValue += (displayValue.match(/^\d/) ? ' 個' : '');
+                }
+
+                let callDisplay = '';
+                if (proj.callNumber) {
+                    const cn = Number(proj.callNumber);
+                    callDisplay = !isNaN(cn) ? cn + ' 個' : proj.callNumber;
+                }
+
+                return `<div class="card">
+                    <div class="title">${proj.title}</div>
+                    <div class="info-row">
+                        <div class="info-box">
+                            <span class="info-label">📦 在庫数</span>
+                            <span class="info-value">${displayValue}</span>
+                        </div>
+                        ${callDisplay ? `<div class="info-box call-box">
+                            <span class="info-label">🛍️ 販売数</span>
+                            <span class="info-value call-value">${callDisplay}</span>
+                        </div>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+
+            document.getElementById('grid').innerHTML = html;
+        }
+
+        async function loadData() {
+            try {
+                const cached = localStorage.getItem(CACHE_KEY);
+                if (cached) renderCards(JSON.parse(cached));
+                const res = await fetch(API_URL);
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+                    renderCards(data);
+                }
+            } catch (e) {
+                if (!document.getElementById('grid').children.length) {
+                    document.getElementById('grid').innerHTML = '<div class="loading">⚠️ データ取得失敗。しばらくお待ちください。</div>';
+                }
+            }
+        }
+
+        let sec = 15;
+        setInterval(() => {
+            sec--;
+            if (sec <= 0) { sec = 15; loadData(); }
+            document.getElementById('update-bar').textContent = `次回更新まで: ${sec}秒`;
+        }, 1000);
+
+        loadData();
+    </script>
+    <script src="app_home_btn.js"></script>
+</body>
+</html>

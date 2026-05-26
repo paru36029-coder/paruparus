@@ -1,0 +1,305 @@
+[
+  {
+    "id": 1001,
+    "className": "2-3",
+    "name": "パンぱかぱーん",
+    "location": "2階 H",
+    "color": "pink",
+    "items": [
+      {
+        "id": 2001,
+        "emoji": "🍽️",
+        "name": "パンオレ",
+        "price": "130円",
+        "soldOut": false
+      },
+      {
+        "id": 2002,
+        "emoji": "🍽️",
+        "name": "チョコチップメロンパン",
+        "price": "180円",
+        "soldOut": false
+      },
+      {
+        "id": 2003,
+        "emoji": "🍽️",
+        "name": "白あんぱん",
+        "price": "150円",
+        "soldOut": false
+      },
+      {
+        "id": 1779798845516,
+        "emoji": "🍽️",
+        "name": "クロワッサン",
+        "price": "220円",
+        "soldOut": false
+      },
+      {
+        "id": 1779798865407,
+        "emoji": "🍽️",
+        "name": "チーズトースト",
+        "price": "150円",
+        "soldOut": false
+      },
+      {
+        "id": 1779798949964,
+        "emoji": "🍽️",
+        "name": "シュガーバターレーズン",
+        "price": "180円",
+        "soldOut": false
+      },
+      {
+        "id": 1779798968984,
+        "emoji": "🍽️",
+        "name": "メロンパン",
+        "price": "150円",
+        "soldOut": false
+      },
+      {
+        "id": 1779799114689,
+        "emoji": "🍽️",
+        "name": "黒あんぱん",
+        "price": "150円",
+        "soldOut": false
+      },
+      {
+        "id": 1779799128887,
+        "emoji": "🍽️",
+        "name": "クリームパン",
+        "price": "150円",
+        "soldOut": false
+      },
+      {
+        "id": 1779799149757,
+        "emoji": "🍽️",
+        "name": "オレンジピール・パン・オレ",
+        "price": "180円",
+        "soldOut": false
+      },
+      {
+        "id": 1779799168010,
+        "emoji": "🍽️",
+        "name": "ウインナーロール",
+        "price": "280円",
+        "soldOut": false
+      },
+      {
+        "id": 1779799178359,
+        "emoji": "🍽️",
+        "name": "焼き菓子",
+        "price": "220円",
+        "soldOut": false
+      }
+    ]
+  },
+  {
+    "id": 1002,
+    "className": "2-4",
+    "name": "ヤック　ラック　フランクフルト　ナー！",
+    "location": "屋外キッチンカー",
+    "color": "orange",
+    "items": [
+      {
+        "id": 1779799199063,
+        "emoji": "🍽️",
+        "name": "フランクフルト",
+        "price": "300円",
+        "soldOut": false
+      }
+    ]
+  },
+  {
+    "id": 1003,
+    "className": "2-10",
+    "name": "台湾ナイト☆楽しまナイト!!with甜甜",
+    "location": "2階 A",
+    "color": "yellow",
+    "items": [
+      {
+        "id": 2007,
+        "emoji": "🍽️",
+        "name": "杏仁豆腐",
+        "price": "300円",
+        "soldOut": false
+      },
+      {
+        "id": 2008,
+        "emoji": "🍽️",
+        "name": "台湾カステラのパルフェ(チョコ)",
+        "price": "400円",
+        "soldOut": false
+      },
+      {
+        "id": 2009,
+        "emoji": "🍽️",
+        "name": "台湾カステラのパルフェ(ホイップ)",
+        "price": "400円",
+        "soldOut": false
+      }
+    ]
+  },
+  {
+    "id": 1004,
+    "className": "3-3",
+    "name": "からあげ屋藪 ～うますぎて、いかんですなぁ～",
+    "location": "屋外キッチンカー",
+    "color": "blue",
+    "items": [
+      {
+        "id": 2010,
+        "emoji": "🍽️",
+        "name": "からあげ(柚子胡椒)3個",
+        "price": "500円",
+        "soldOut": false
+      },
+      {
+        "id": 2011,
+        "emoji": "🍽️",
+        "name": "からあげ(柚子胡椒)5個",
+        "price": "800円",
+        "soldOut": false
+      },
+      {
+        "id": 1779799388596,
+        "emoji": "🍽️",
+        "name": "フライドポテト",
+        "price": "500円",
+        "soldOut": false
+      }
+    ]
+  },
+  {
+    "id": 1005,
+    "className": "3-5",
+    "name": "寄り道、道端",
+    "location": "屋外キッチンカー",
+    "color": "green",
+    "items": [
+      {
+        "id": 2012,
+        "emoji": "🍽️",
+        "name": "シフォンケーキ(プレーン)",
+        "price": "300円",
+        "soldOut": false
+      },
+      {
+        "id": 2013,
+        "emoji": "🍽️",
+        "name": "シフォンケーキ(抹茶)",
+        "price": "300円",
+        "soldOut": false
+      },
+      {
+        "id": 1779799477791,
+        "emoji": "🍽️",
+        "name": "シフォンケーキ(アールグレイ)",
+        "price": "300円",
+        "soldOut": false
+      },
+      {
+        "id": 1779799502523,
+        "emoji": "🍽️",
+        "name": "パニーニ(魚)",
+        "price": "300円",
+        "soldOut": false
+      },
+      {
+        "id": 1779799533119,
+        "emoji": "🍽️",
+        "name": "パニーニ(ハムチーズ)",
+        "price": "300円",
+        "soldOut": false
+      }
+    ]
+  },
+  {
+    "id": 1779799582039,
+    "className": "3-6",
+    "name": "トリックアートオアトリート",
+    "location": "3階 H",
+    "color": "purple",
+    "items": [
+      {
+        "id": 1779800095516,
+        "emoji": "🍽️",
+        "name": "マドレーヌ いちご",
+        "price": "300円",
+        "soldOut": false
+      },
+      {
+        "id": 1779800123732,
+        "emoji": "🍽️",
+        "name": "マドレーヌ プレーン(プリント)",
+        "price": "300円",
+        "soldOut": false
+      },
+      {
+        "id": 1779800134348,
+        "emoji": "🍽️",
+        "name": "ドーナツ 砂糖",
+        "price": "300円",
+        "soldOut": false
+      },
+      {
+        "id": 1779800146428,
+        "emoji": "🍽️",
+        "name": "ドーナツ 抹茶",
+        "price": "300円",
+        "soldOut": false
+      },
+      {
+        "id": 1779800159850,
+        "emoji": "🍽️",
+        "name": "にゃんこカステラ プレーン",
+        "price": "300円",
+        "soldOut": false
+      },
+      {
+        "id": 1779800172842,
+        "emoji": "🍽️",
+        "name": "にゃんこカステラ チョコ",
+        "price": "300円",
+        "soldOut": false
+      },
+      {
+        "id": 1779800194757,
+        "emoji": "🍽️",
+        "name": "プリントクッキー",
+        "price": "200円",
+        "soldOut": false
+      }
+    ]
+  },
+  {
+    "id": 1006,
+    "className": "食堂",
+    "name": "食堂",
+    "location": "食堂",
+    "color": "teal",
+    "items": [
+      {
+        "id": 1779799975319,
+        "emoji": "🍽️",
+        "name": "現在調整中",
+        "price": "未定",
+        "soldOut": false
+      }
+    ]
+  },
+  {
+    "id": 1779798768336,
+    "className": "PTA",
+    "name": "PTA",
+    "location": "1階 A",
+    "color": "teal",
+    "items": [
+      {
+        "id": 1779799984746,
+        "emoji": "🍽️",
+        "name": "現在調整中",
+        "price": "未定",
+        "soldOut": false
+      }
+    ]
+  }
+]
