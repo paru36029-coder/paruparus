@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>待ち時間情報</title>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* 新緑祭のステッカー風・ポップデザイン */
+        body { 
+            font-family: 'M PLUS Rounded 1c', "Hiragino Maru Gothic ProN", "Meiryo", sans-serif; 
+            background-color: transparent; 
+            margin: 0; 
+            padding: 50px 10px 15px 10px; 
+            min-height: 100vh;
+            box-sizing: border-box;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #main-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+            box-sizing: border-box;
+            flex: 1;
+        }
+
+        .panel-section {
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.55);
+            border-radius: 16px;
+            border: 3px solid #1a3a28;
+            box-shadow: 3px 3px 0px #1a3a28;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .sales-section {
+            flex: 1; /* 横幅を均等に近づけてカードサイズを統一 */
+        }
+
+        .wait-section {
+            flex: 1.1; /* 独自企画側は情報量や件数が多いため、わずかに広くして美しく調和 */
+        }
+
+        .section-title {
+            font-size: 1.15rem;
+            font-weight: 900;
+            color: #ffffff;
+            background: #27ae60;
+            padding: 6px 16px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            text-align: center;
+            border: 3px solid #1a3a28;
+            box-shadow: 2px 2px 0px #1a3a28;
+            text-shadow: 1px 1px 0px #1a3a28;
+        }
+
+        .grid-container {
+            display: grid;
+            gap: 12px; /* カード間の余白を12pxに統一 */
+            flex: 1;
+            min-height: 0;
+            box-sizing: border-box;
+        }
+
+        /* 左の販売グリッド (商店、スクロール可能、高さ固定) */
+        #sales-container {
+            grid-template-columns: repeat(2, 1fr);
+            grid-auto-rows: 135px; /* 縦幅を135pxに拡張して3行タイトルに対応 */
+            overflow-y: auto; /* 縦スクロール可能に */
+            flex: 1; /* 親の残り高さにフィットさせ、はみ出しを確実に防止 */
+            min-height: 0; /* はみ出し防止のflexセーフガード */
+            scrollbar-width: none; /* Firefox でスクロールバーを非表示 */
+        }
+        #sales-container::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera でスクロールバーを非表示 */
+        }
+
+        /* 右の待ち時間グリッド (14枚 ➔ 2列、スクロール可能、高さ固定) */
+        #wait-container {
+            grid-template-columns: repeat(2, 1fr); /* 2列表示にして横幅を大きく拡大 */
+            grid-auto-rows: 135px; /* 縦幅を135pxに拡張して3行タイトルに対応 */
+            overflow-y: auto; /* 縦スクロール可能に */
+            flex: 1; /* 親の残り高さにフィットさせ、はみ出しを確実に防止 */
+            min-height: 0; /* はみ出し防止のflexセーフガード */
+            scrollbar-width: none; /* Firefox でスクロールバーを非表示 */
+            gap: 12px; /* 余白を広げて美しく配置 */
+        }
+        #wait-container::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera でスクロールバーを非表示 */
+        }
+
+        /* クラスごとのカードデザイン（コンパクト化＆ステッカー風） */
+        .card { 
+            background: #ffffff; 
+            border-radius: 12px; 
+            padding: 10px 14px; /* 余白を広げて視認性と高級感をアップ */
+            border: 3px solid #1a3a28;
+            box-shadow: 3px 3px 0px #1a3a28; 
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 8px; /* タイトルと情報の隙間 */
+            height: 100%;
+            box-sizing: border-box;
+            min-height: 0;
+            transition: all 0.3s ease;
+        }
+
+        .title { 
+            font-size: 0.98rem; /* 文字サイズをわずかに調整して長い名称を完璧に収める */
+            color: #27ae60; 
+            margin: 0; 
+            font-weight: 900; 
+            line-height: 1.2;
+            word-break: break-all;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3; /* 最大3行まで表示し見切れを防止 */
+            -webkit-box-orient: vertical;
+            height: 3.6em; /* 3行分の高さをしっかりと確保して美しく整列 */
+        }
+        
+        /* 情報が並ぶエリア */
+        .info-row { 
+            display: flex; 
+            gap: 8px; 
+            box-sizing: border-box;
+            min-height: 0;
+            margin-top: auto; /* 余白がある場合は下寄せ */
+            width: 100%;
+        }
+
+        .info-box { 
+            background: #e0f8e9; 
+            padding: 6px 8px; /* パディングを拡大 */
+            border-radius: 8px; 
+            flex: 1; 
+            min-width: 0;
+            text-align: center; 
+            border: 1.5px solid #1a3a28;
+            box-shadow: 1.5px 1.5px 0px #1a3a28;
+            box-sizing: border-box;
+        }
+
+        .info-label { 
+            font-size: 0.7rem; /* 文字サイズを拡大し見やすく */
+            color: #1a3a28; 
+            font-weight: 900; 
+            display: block; 
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            letter-spacing: -0.01em;
+        }
+
+        .info-value { 
+            font-size: 1.18rem; /* 数値表示を大きく強調 */
+            font-weight: 900; 
+            color: #1a3a28; 
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* 整理券呼び出しを目立たせる */
+        .call-box { 
+            background: #fcf6bd; 
+            transform-origin: center;
+            animation: pulse 1.5s infinite alternate; 
+        }
+
+        .call-value { 
+            color: #e74c3c; 
+            font-size: 1.1rem;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 1px 1px 0px #1a3a28; }
+            100% { transform: scale(1.02); box-shadow: 2px 2px 0px #1a3a28; }
+        }
+
+        /* 📱 スマホ向けレスポンシブ */
+        @media screen and (max-width: 768px) {
+            #main-layout {
+                flex-direction: column;
+            }
+            .sales-section, .wait-section {
+                flex: 1;
+            }
+            #sales-container {
+                grid-template-columns: repeat(1, 1fr);
+            }
+            #wait-container {
+                grid-template-columns: repeat(1, 1fr); /* 2列だと窮屈なので1列に */
+            }
+            .title {
+                font-size: 0.95rem;
+            }
+            .info-value, .call-value {
+                font-size: 1.05rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-layout">
+        <!-- 左パネル：商店 -->
+        <div class="panel-section sales-section">
+            <div class="section-title">🛍️ 商店</div>
+            <div id="sales-container" class="grid-container">
+                <h3 style="text-align: center; color: #1a3a28; grid-column: 1/-1;">🔄 読込中...</h3>
+            </div>
+        </div>
+        
+        <!-- 右パネル：待ち時間 (独自企画) -->
+        <div class="panel-section wait-section">
+            <div class="section-title">⏱️ 独自企画待ち時間</div>
+            <div id="wait-container" class="grid-container">
+                <h3 style="text-align: center; color: #1a3a28; grid-column: 1/-1;">🔄 読込中...</h3>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 取得済みのGASのURL
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzgrgP84UFyJoEiBBzskZxBOV6BJQz0TbT-lEyntc_w-OpwjyEbe07sd_iP59OeUimWJQ/exec';
+
+        // 選択肢にあるすべての企画のデフォルトリスト（マスターデータ）
+        // ユーザーから送られたリストにある20企画のみを定義し、それ以外の表示は一切行わない
+        const ALL_PROJECTS = [
+            { key: "炎の岡卓治郎TV〜Kりたいもんですよ〜", className: "岡卓治郎", title: "炎の岡卓治郎TV〜Kりたいもんですよ〜", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "南の島のアニマルクルーズ", className: "アニマル", title: "南の島のアニマルクルーズ", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "台湾ナイト☆楽しまナイト!!with甜甜", className: "台湾ナイト", title: "台湾ナイト☆楽しまナイト!!with甜甜", waitTime: "準備中", callNumber: "", isFood: true },
+            { key: "アヒルマニアReturns~1st ANNIVERSARY~", className: "3-3", title: "アヒルマニアReturns~1st ANNIVERSARY~", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "TOY STORY MA2A", className: "TOY", title: "TOY STORY MA2A", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "からあげ屋 藪 〜うますぎて、いかんですなぁ〜", className: "からあげ", title: "からあげ屋 藪 〜うますぎて、いかんですなぁ〜", waitTime: "準備中", callNumber: "", isFood: true },
+            { key: "BRIBRIバイキング", className: "BRIBRI", title: "BRIBRIバイキング", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "寄り道、道端", className: "寄り道", title: "寄り道、道端", waitTime: "準備中", callNumber: "", isFood: true },
+            { key: "トリックアートオアトリート", className: "トリックアート", title: "トリックアートオアトリート", waitTime: "準備中", callNumber: "", isFood: true },
+            { key: "迷宮入りの夢世界(ワンダーランド)", className: "迷宮入り", title: "迷宮入りの夢世界(ワンダーランド)", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "健太郎電鉄〜最強社長は誰だ〜", className: "健太郎電鉄", title: "健太郎電鉄〜最強社長は誰だ〜", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "わっしょい理数科", className: "理数科", title: "わっしょい理数科", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "運命の確率(プロバリティー)", className: "1年", title: "運命の確率(プロバリティー)", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "パンぱかぱーん", className: "2年", title: "パンぱかぱーん", waitTime: "準備中", callNumber: "", isFood: true },
+            { key: "ヤッラ クッル フランクフルト ナー！（2-4 of フランクフルトを食べよう！）", className: "2-4", title: "ヤッラ クッル フランクフルト ナー！（2-4のフランクフルトを食べよう！）", waitTime: "準備中", callNumber: "", isFood: true },
+            { key: "漆黒の迷宮(ブラックラビリンス)", className: "漆黒 of 迷宮", title: "漆黒の迷宮(ブラックラビリンス)", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "愛をgrowing up 〜君と過ごすコーヒーカップ〜", className: "コーヒーカップ", title: "愛をgrowing up 〜君と過ごすコーヒーカップ〜", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "恐怖の松林(パインフォレスト)", className: "恐怖の松林", title: "恐怖の松林(パインフォレスト)", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "Toy stone!!!", className: "Toystone", title: "Toy stone!!!", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "9番出口", className: "9番出口", title: "9番出口", waitTime: "準備中", callNumber: "", isFood: false }
+        ];
+
+        // キャッシュキー
+        const CACHE_KEY = "naviWaitTimeCache";
+        let hasLoadedSuccessfully = false;
+
+        // キャッシュから即時描画を試みる関数
+        function tryRenderFromCache() {
+            try {
+                const cached = localStorage.getItem(CACHE_KEY);
+                if (cached) {
+                    const parsedData = JSON.parse(cached);
+                    if (Array.isArray(parsedData) && parsedData.length > 0) {
+                        console.log("[Cache] キャッシュからデータを即時読み込みました。");
+                        renderCards(parsedData);
+                    }
+                }
+            } catch (e) {
+                console.error("キャッシュ読込エラー:", e);
+            }
+        }
+
+        // データを画面に描画する関数
+        function renderCards(data) {
+            // マスターデータで初期化
+            const projectsMap = {};
+            ALL_PROJECTS.forEach(proj => {
+                projectsMap[proj.key] = { ...proj };
+            });
+            
+            // スプレッドシートからの回答をマッピング
+            data.forEach(item => {
+                if (!item) return;
+                const itemClassName = String(item.className || "").trim();
+                const itemTitle = String(item.title || "").trim();
+                
+                // 遠隔遅延情報の判定とフィルタリング
+                if (itemTitle.includes("遅延情報") || itemClassName.includes("遅延情報") || itemTitle === "遅延" || itemClassName === "遅延") {
+                    const waitTime = String(item.waitTime || "").trim().toUpperCase();
+                    const enabled = waitTime !== "" && waitTime !== "OFF" && waitTime !== "0" && waitTime !== "非表示" && waitTime !== "準備中";
+                    const text = String(item.callNumber || item.title || "").trim();
+                    if (window.parent && window.parent !== window) {
+                        window.parent.postMessage({ type: 'updateDelay', enabled: enabled, text: text }, '*');
+                    }
+                    return;
+                }
+                
+                let matchedKey = "";
+                
+                // キーの完全一致確認
+                if (projectsMap[itemClassName]) {
+                    matchedKey = itemClassName;
+                } else if (projectsMap[itemTitle]) {
+                    matchedKey = itemTitle;
+                } else {
+                    // 曖昧マッチング（部分一致など）
+                    const found = ALL_PROJECTS.find(p => 
+                        itemClassName.includes(p.key) || 
+                        p.key.includes(itemClassName) ||
+                        itemTitle.includes(p.key) || 
+                        p.key.includes(itemTitle) ||
+                        (p.className && (itemClassName.includes(p.className) || itemTitle.includes(p.className)))
+                    );
+                    if (found) matchedKey = found.key;
+                }
+                
+                if (matchedKey) {
+                    const proj = projectsMap[matchedKey];
+                    const rawWaitTime = item.waitTime;
+                    const rawCallNumber = item.callNumber;
+                    
+                    if (proj.isFood) {
+                        // 模擬店/食品: 在庫数や混み具合の抽出
+                        proj.waitTime = rawWaitTime !== undefined && rawWaitTime !== null ? String(rawWaitTime).trim() : "";
+                        
+                        let sales = "";
+                        if (rawCallNumber && String(rawCallNumber).trim() !== "") {
+                            sales = String(rawCallNumber).trim();
+                        } else if (itemTitle && String(itemTitle).trim() !== "" && String(itemTitle).trim() !== "準備中" && !itemTitle.includes(proj.key)) {
+                            sales = itemTitle;
+                        }
+                        proj.callNumber = sales;
+                    } else {
+                        // 一般アトラクション/展示企画
+                        let status = "";
+                        if (itemTitle && String(itemTitle).trim() !== "" && String(itemTitle).trim() !== "準備中" && !itemTitle.includes(proj.key)) {
+                            status = String(itemTitle).trim();
+                        } else if (rawWaitTime !== undefined && rawWaitTime !== null && String(rawWaitTime).trim() !== "") {
+                            status = String(rawWaitTime).trim();
+                        }
+                        proj.waitTime = status;
+                        proj.callNumber = rawCallNumber !== undefined && rawCallNumber !== null ? String(rawCallNumber).trim() : "";
+                    }
+                }
+            });
+            
+            // 表示用配列の構築
+            const uniqueData = [];
+            ALL_PROJECTS.forEach(proj => {
+                uniqueData.push(projectsMap[proj.key]);
+            });
+            
+            let salesHtml = "";
+            let waitHtml = "";
+
+            // 各企画ごとにカードを作る
+            uniqueData.forEach(item => {
+                const realClassName = item.className;
+                const realTitle = item.title;
+                const isFood = item.isFood;
+                const isClassShop = realClassName === "2-1" || realClassName === "2-2" || realTitle === "2-1" || realTitle === "2-2";
+                
+                // 待ち時間 or 在庫数の動的判定
+                let label = "待ち時間";
+                let displayValue = item.waitTime !== undefined && item.waitTime !== null ? String(item.waitTime).trim() : "";
+                
+                const hasYellowBox = item.callNumber && String(item.callNumber).trim() !== "";
+                
+                if (isFood && !hasYellowBox) {
+                    label = "在庫数";
+                    const num = Number(displayValue);
+                    if (!isNaN(num) && displayValue !== "") {
+                        displayValue = num === 0 ? "<span style='color: #e74c3c; font-weight: 900;'>完売</span>" : num + " 個";
+                    } else if (displayValue && displayValue !== "準備中") {
+                        displayValue = displayValue + " 個";
+                    }
+                } else {
+                    label = isFood ? "在庫数" : "待ち時間";
+                    const num = Number(displayValue);
+                    if (!isNaN(num) && displayValue !== "") {
+                        displayValue = num === 0 ? (isFood ? "在庫なし" : "すぐ入れます") : (isFood ? num + " 個" : num + " 分");
+                    }
+                }
+
+                // 販売数（整理券番号など）の表示文字列の決定
+                let callDisplay = "";
+                if (item.callNumber && String(item.callNumber).trim() !== "") {
+                    const trimmedCall = String(item.callNumber).trim();
+                    if (!isNaN(Number(trimmedCall)) && trimmedCall !== "") {
+                        callDisplay = trimmedCall + " 個";
+                    } else {
+                        callDisplay = trimmedCall;
+                    }
+                }
+
+                const cardHtml = `
+                <div class="card">
+                    <div class="title">${realTitle}</div>
+                    <div class="info-row">
+                        ${(isFood && hasYellowBox && (!isClassShop || (displayValue === "すぐ入れます" || displayValue === "" || displayValue === "0" || displayValue === "0 分" || displayValue === "在庫なし"))) ? "" : `
+                        <div class="info-box">
+                            <span class="info-label">⏱️ ${label}</span>
+                            <span class="info-value">${displayValue}</span>
+                        </div>`}
+                        ${callDisplay ? `
+                        <div class="info-box call-box">
+                            <span class="info-label">🛍️ 販売数</span>
+                            <span class="info-value call-value">${callDisplay}</span>
+                        </div>` : ""}
+                    </div>
+                </div>`;
+
+                if (isFood) {
+                    salesHtml += cardHtml;
+                } else {
+                    waitHtml += cardHtml;
+                }
+            });
+            
+            const salesContainer = document.getElementById("sales-container");
+            const waitContainer = document.getElementById("wait-container");
+
+            if (salesContainer) salesContainer.innerHTML = salesHtml || "<h4 style='text-align:center; color:#999; grid-column: 1/-1;'>該当なし</h4>";
+            if (waitContainer) waitContainer.innerHTML = waitHtml || "<h4 style='text-align:center; color:#999; grid-column: 1/-1;'>該当なし</h4>";
+        }
+
+        // データを取得して画面を作る関数
+        async function loadData() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                
+                if (Array.isArray(data) && data.length > 0) {
+                    // 成功データをキャッシュに保存
+                    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+                    // 画面を描画
+                    renderCards(data);
+                    hasLoadedSuccessfully = true;
+                }
+            } catch (error) {
+                console.error("データ取得エラー:", error);
+                
+                // 既に画面にカードが表示されている（またはキャッシュからの復元が成功している）場合は、
+                // エラー画面で上書きせず、現在の画面表示をそのまま維持してサイネージの連続性を保ちます！
+                const salesContent = document.getElementById("sales-container").innerHTML;
+                const isContainerEmpty = !salesContent || salesContent.includes("読込中...") || salesContent.includes("該当なし");
+                
+                if (isContainerEmpty) {
+                    const errHtml = "<h4 style='color:red; grid-column: 1/-1;'>⚠️ データの取得に失敗しました。電波環境を確認するか、時間をおいてお試しください。</h4>";
+                    document.getElementById("sales-container").innerHTML = errHtml;
+                    document.getElementById("wait-container").innerHTML = errHtml;
+                } else {
+                    console.warn("[Stability] 通信に一時的な問題が発生しましたが、現在の表示を維持します。");
+                }
+
+                // 初回ロードが失敗している（通信環境が復旧していない）場合は、10秒間隔で高速にリトライします
+                if (!hasLoadedSuccessfully) {
+                    setTimeout(loadData, 10000);
+                    return;
+                }
+            }
+        }
+
+        // 起動時にまずキャッシュから即時復元を試みる（白画面化の完全防止）
+        tryRenderFromCache();
+
+        // 起動時に新鮮なデータを読み込む
+        loadData();
+
+        setInterval(loadData, 15000);
+
+        // ===== 商店・独自企画コンテナの自動スクロール機能 =====
+        function autoScroll() {
+            ['sales-container', 'wait-container'].forEach(id => {
+                const container = document.getElementById(id);
+                const state = scrollStates[id];
+                
+                if (container && container.scrollHeight > container.clientHeight) {
+                    if (!state.isPaused) {
+                        // 内部的な実数スクロール位置を正確に加算
+                        state.currentScrollY += state.scrollSpeed;
+                        // 実際のscrollTopに反映（Math.floorによりブラウザの小数切り捨て問題を完全回避）
+                        container.scrollTop = Math.floor(state.currentScrollY);
+                        
+                        // 堅牢な終端検知 (残り1.5px以下になったら終端と判定し、ズーム端数を完全吸収)
+                        if (container.scrollHeight - container.scrollTop - container.clientHeight <= 1.5) {
+                            state.isPaused = true;
+                            setTimeout(() => {
+                                // 個別にスムーズに一番上に戻す
+                                container.scrollTo({ top: 0, behavior: 'smooth' });
+                                setTimeout(() => {
+                                    state.currentScrollY = 0;
+                                    container.scrollTop = 0;
+                                    state.isPaused = false;
+                                }, 1500); // 戻るアニメーション（約1秒）の完了を待って再開
+                            }, 2000); // 終端に達したら2秒間静止して読ませる
+                        }
+                    }
+                } else if (container) {
+                    // スクロール不要な場合は位置を0にリセット
+                    state.currentScrollY = 0;
+                }
+            });
+            requestAnimationFrame(autoScroll);
+        }
+
+        // 起動直後から autoScroll ループを開始 (ユーザーの要望により自動スクロールは無効化)
+        // requestAnimationFrame(autoScroll);
+
+        // setTimeout(() => {
+        //     scrollStates['sales-container'].isPaused = false;
+        //     scrollStates['wait-container'].isPaused = false;
+        //     console.log("[AutoScroll] 自動スクロールを開始しました。");
+        // }, 4000);
+
+    </script>
+</body>
+</html>
