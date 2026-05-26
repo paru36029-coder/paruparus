@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>待ち時間情報</title>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* 新緑祭のステッカー風・ポップデザイン */
+        body { 
+            font-family: 'M PLUS Rounded 1c', "Hiragino Maru Gothic ProN", "Meiryo", sans-serif; 
+            background-color: transparent; 
+            margin: 0; 
+            padding: 92px 15px 15px 15px; /* 上部パディングを92pxに拡張し、デカくなった食堂バーの領域を確保 */
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden; /* スクロールを完全に撲滅 */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 食堂混雑状況バーのポップデザイン (限界突破デカ化) */
+        .cafeteria-bar {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.88);
+            border: 4.5px solid #1a3a28; /* 枠線も極太に */
+            box-shadow: 4px 4px 0px #1a3a28;
+            border-radius: 20px; /* 角丸をより豊かに */
+            padding: 12px 28px; /* パディングを劇的拡張 */
+            margin: 0 auto 12px auto;
+            width: 100%;
+            max-width: 100%; 
+            box-sizing: border-box;
+            gap: 28px; /* 要素間の隙間を広げて視認性アップ */
+            color: #1a3a28;
+            z-index: 10;
+        }
+        .cafe-header-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            white-space: nowrap;
+        }
+        .cafe-icon {
+            font-size: 2.1rem; /* アイコンを巨大化 */
+            animation: bounce 2s infinite alternate;
+        }
+        .cafe-title {
+            font-size: 1.45rem; /* タイトルをデカく */
+            font-weight: 900;
+            color: #27ae60;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+        }
+        .cafe-status {
+            font-size: 1.55rem; /* ステータスを劇的デカく */
+            font-weight: 900;
+            background: #e0f8e9;
+            padding: 6px 20px; /* 内側パディングも拡張 */
+            border-radius: 14px;
+            border: 3px solid #1a3a28;
+            box-shadow: 2px 2px 0px #1a3a28;
+            white-space: nowrap;
+            transition: all 0.5s ease;
+        }
+        .cafe-count {
+            font-size: 1.2rem; /* 利用人数を大きく */
+            font-weight: 900;
+            white-space: nowrap;
+        }
+        .cafe-max {
+            font-size: 0.95rem;
+            opacity: 0.8;
+        }
+        .cafe-progress-wrap {
+            flex: 1;
+            height: 24px; /* 進捗バーの太さを 24px にして圧倒的デカ化 */
+            background: #ffffff;
+            border: 3.5px solid #1a3a28;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: inset 1px 1px 3px rgba(0,0,0,0.25);
+            display: flex;
+            align-items: center;
+        }
+        .cafe-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #27ae60;
+            border-radius: 10px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.8s ease;
+        }
+        .cafe-timer {
+            font-size: 0.88rem; /* タイマーも大きく読みやすく */
+            font-weight: 900;
+            color: #7f8c8d;
+            white-space: nowrap;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-4px); }
+        }
+
+        #main-layout {
+            display: flex;
+            gap: 12px;
+            height: 100%;
+            width: 100%;
+            max-width: 100%; 
+            margin: 0 auto;
+            box-sizing: border-box;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .panel-section {
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.55);
+            border-radius: 20px;
+            border: 4px solid #1a3a28;
+            box-shadow: 4px 4px 0px #1a3a28;
+            padding: 10px;
+            box-sizing: border-box;
+            min-height: 0;
+            height: 100%; /* 親 #main-layout の高さに完全にフィットさせ、縦伸びを徹底防止 */
+        }
+
+        /* 商店(2列)と独自企画(4列)の比率を2:4(1:2)に設定し、左右のカード横幅をミリ単位で完全一致に統一 */
+        .sales-section {
+            flex: 2;
+        }
+
+        .wait-section {
+            flex: 4;
+        }
+
+        .section-title {
+            font-size: 1.25rem; /* セクションタイトルをデカく */
+            font-weight: 900;
+            color: #ffffff;
+            background: #27ae60;
+            padding: 8px 18px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            text-align: center;
+            border: 3px solid #1a3a28;
+            box-shadow: 2px 2px 0px #1a3a28;
+            text-shadow: 1px 1px 0px #1a3a28;
+        }
+
+        .grid-container {
+            display: grid;
+            gap: 12px; 
+            flex: 1;
+            min-height: 0;
+            box-sizing: border-box;
+        }
+
+        /* 左の販売グリッド (商店: 2列表示にして1つあたりを大幅にデカく) */
+        #sales-container {
+            grid-template-columns: repeat(2, 1fr);
+            grid-auto-rows: 135px; /* 高さを135pxのデカいサイズ */
+            overflow-y: auto;
+            flex: 1; /* 親の残り高さにフィットさせ、はみ出しを確実に防止 */
+            min-height: 0; /* はみ出し防止のflexセーフガード */
+            scrollbar-width: none;
+        }
+        #sales-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 右の待ち時間グリッド (独自企画: 4列表示にして1つあたりを大幅にデカく) */
+        #wait-container {
+            grid-template-columns: repeat(4, 1fr); /* 4列にして視認性を最大化 */
+            grid-auto-rows: 135px; /* 高さを135pxのデカいサイズ */
+            overflow-y: auto;
+            flex: 1; /* 親の残り高さにフィットさせ、はみ出しを確実に防止 */
+            min-height: 0; /* はみ出し防止 of flexセーフガード */
+            gap: 12px;
+            scrollbar-width: none;
+        }
+        #wait-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* クラスごとのカードデザイン（限界まで文字を大きくした超視認性ポップ仕様） */
+        .card { 
+            background: #ffffff; 
+            border-radius: 12px; 
+            padding: 8px 12px; /* 縦の余白を少し締め、文字スペースを極限まで拡張 */
+            border: 3px solid #1a3a28;
+            box-shadow: 3px 3px 0px #1a3a28; 
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 4px; /* 要素間の隙間を詰めて文字サイズアップに還元 */
+            height: 100%;
+            box-sizing: border-box;
+            min-height: 0;
+            transition: all 0.3s ease;
+        }
+
+        .title { 
+            font-size: 1.12rem; /* 限界まで文字を巨大化！ */
+            color: #27ae60; 
+            margin: 0; 
+            font-weight: 900; 
+            line-height: 1.2;
+            word-break: break-all;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2; /* 最大2行表示にすることで1文字あたりを圧倒的にデカく見せる */
+            -webkit-box-orient: vertical;
+            height: 2.4em; /* 2行分のスペースを完璧に確保 */
+        }
+        
+        /* 情報が並ぶエリア */
+        .info-row { 
+            display: flex; 
+            gap: 8px; 
+            box-sizing: border-box;
+            min-height: 0;
+            margin-top: auto; /* 下寄せ */
+            width: 100%;
+        }
+
+        .info-box { 
+            background: #e0f8e9; 
+            padding: 4px 6px; /* パディングを適度にスリム化 */
+            border-radius: 8px; 
+            flex: 1; 
+            min-width: 0;
+            text-align: center; 
+            border: 1.5px solid #1a3a28;
+            box-shadow: 1.5px 1.5px 0px #1a3a28;
+            box-sizing: border-box;
+        }
+
+        .info-label { 
+            font-size: 0.82rem; /* ラベル文字を大幅巨大化！ */
+            color: #1a3a28; 
+            font-weight: 900; 
+            display: block; 
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            letter-spacing: -0.02em;
+        }
+
+        .info-value { 
+            font-size: 1.35rem; /* 数値表示を限界突破で大きく強調！ */
+            font-weight: 900; 
+            color: #1a3a28; 
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* 整理券呼び出しを目立たせる */
+        .call-box { 
+            background: #fcf6bd; 
+            transform-origin: center;
+            animation: pulse 1.5s infinite alternate; 
+        }
+
+        .call-value { 
+            color: #e74c3c; 
+            font-size: 1.25rem; /* 呼び出し整理券／在庫数などのテキストも巨大化！ */
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 1px 1px 0px #1a3a28; }
+            100% { transform: scale(1.02); box-shadow: 2px 2px 0px #1a3a28; }
+        }
+
+        /* 📱 スマホ向けレスポンシブ */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 60px 10px 10px 10px;
+            }
+            .cafeteria-bar {
+                padding: 10px 15px;
+                gap: 10px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .cafe-header-group {
+                width: 100%;
+                justify-content: center;
+            }
+            .cafe-progress-wrap {
+                width: 100%;
+                flex: none;
+            }
+            #main-layout {
+                flex-direction: column;
+            }
+            .sales-section, .wait-section {
+                flex: 1; /* 高さを均等に分割、もしくは必要に応じてスクロール */
+            }
+            #sales-container {
+                grid-template-columns: repeat(1, 1fr);
+            }
+            #wait-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .title {
+                font-size: 1rem;
+            }
+            .info-value, .call-value {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 食堂混雑状況バー -->
+    <div class="cafeteria-bar">
+        <div class="cafe-header-group">
+            <span class="cafe-icon">🍚</span>
+            <span class="cafe-title">食堂混雑状況</span>
+        </div>
+        <div class="cafe-status" id="cafe-status">データ取得中...</div>
+        <div class="cafe-count">利用人数: <span id="cafe-user-count" style="font-size:1.55rem; color:#e74c3c;">--</span> 人 <span class="cafe-max">/ 定員 150 人</span></div>
+        <div class="cafe-progress-wrap">
+            <div class="cafe-progress-fill" id="cafe-progress"></div>
+        </div>
+        <div class="cafe-timer" id="cafe-timer">更新中...</div>
+    </div>
+
+    <div id="main-layout">
+        <!-- 左パネル：商店 (2列 × 3行でぴったりスクロールゼロ ➔ カードサイズ超巨大！) -->
+        <div class="panel-section sales-section">
+            <div class="section-title">🛍️ 商店</div>
+            <div id="sales-container" class="grid-container">
+                <h3 style="text-align: center; color: #1a3a28; grid-column: 1/-1;">🔄 読込中...</h3>
+            </div>
+        </div>
+        
+        <!-- 右パネル：待ち時間 (4列 × 4行でぴったりスクロールゼロ ➔ カードサイズ超巨大！) -->
+        <div class="panel-section wait-section">
+            <div class="section-title">⏱️ 独自企画待ち時間</div>
+            <div id="wait-container" class="grid-container">
+                <h3 style="text-align: center; color: #1a3a28; grid-column: 1/-1;">🔄 読込中...</h3>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 取得済みのGASのURL
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzgrgP84UFyJoEiBBzskZxBOV6BJQz0TbT-lEyntc_w-OpwjyEbe07sd_iP59OeUimWJQ/exec';
+
+        // 選択肢にあるすべての企画のデフォルトリスト（マスターデータ）
+        const ALL_PROJECTS = [
+            { key: "炎の岡卓治郎TV〜Kりたいもんですよ〜", className: "岡卓治郎", title: "炎の岡卓治郎TV〜Kりたいもんですよ〜", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "南の島のアニマルクルーズ", className: "アニマル", title: "南の島のアニマルクルーズ", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "台湾ナイト☆楽しまナイト!!with甜甜", className: "台湾ナイト", title: "台湾ナイト☆楽しまナイト!!with甜甜", waitTime: "準備中", callNumber: "", isFood: true },
+            { key: "アヒルマニアReturns~1st ANNIVERSARY~", className: "3-3", title: "アヒルマニアReturns~1st ANNIVERSARY~", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "TOY STORY MA2A", className: "TOY", title: "TOY STORY MA2A", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "からあげ屋 藪 〜うますぎて、いかんですなぁ〜", className: "からあげ", title: "からあげ屋 藪 〜うますぎて、いかんですなぁ〜", waitTime: "準備中", callNumber: "", isFood: true },
+            { key: "BRIBRIバイキング", className: "BRIBRI", title: "BRIBRIバイキング", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "寄り道、道端", className: "寄り道", title: "寄り道、道端", waitTime: "準備中", callNumber: "", isFood: true },
+            { key: "トリックアートオアトリート", className: "トリックアート", title: "トリックアートオアトリート", waitTime: "準備中", callNumber: "", isFood: true },
+            { key: "迷宮入りの夢世界(ワンダーランド)", className: "迷宮入り", title: "迷宮入りの夢世界(ワンダーランド)", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "健太郎電鉄〜最強社長は誰だ〜", className: "健太郎電鉄", title: "健太郎電鉄〜最強社長は誰だ〜", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "わっしょい理数科", className: "理数科", title: "わっしょい理数科", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "運命の確率(プロバリティー)", className: "1年", title: "運命の確率(プロバリティー)", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "パンぱかぱーん", className: "2年", title: "パンぱかぱーん", waitTime: "準備中", callNumber: "", isFood: true },
+            { key: "ヤッラ クッル フランクフルト ナー！（2-4 of フランクフルトを食べよう！）", className: "2-4", title: "ヤッラ クッル フランクフルト ナー！（2-4のフランクフルトを食べよう！）", waitTime: "準備中", callNumber: "", isFood: true },
+            { key: "漆黒の迷宮(ブラックラビリンス)", className: "漆黒 of 迷宮", title: "漆黒の迷宮(ブラックラビリンス)", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "愛をgrowing up 〜君と過ごすコーヒーカップ〜", className: "コーヒーカップ", title: "愛をgrowing up 〜君と過ごすコーヒーカップ〜", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "恐怖の松林(パインフォレスト)", className: "恐怖の松林", title: "恐怖の松林(パインフォレスト)", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "Toy stone!!!", className: "Toystone", title: "Toy stone!!!", waitTime: "準備中", callNumber: "", isFood: false },
+            { key: "9番出口", className: "9番出口", title: "9番出口", waitTime: "準備中", callNumber: "", isFood: false }
+        ];
+        // キャッシュキー
+        const CACHE_KEY = "naviWaitTimeCache";
+        let hasLoadedSuccessfully = false;
+
+        // キャッシュから即時描画を試みる関数
+        function tryRenderFromCache() {
+            try {
+                const cached = localStorage.getItem(CACHE_KEY);
+                if (cached) {
+                    const parsedData = JSON.parse(cached);
+                    if (Array.isArray(parsedData) && parsedData.length > 0) {
+                        console.log("[Cache] キャッシュからデータを即時読み込みました。");
+                        renderCards(parsedData);
+                    }
+                }
+            } catch (e) {
+                console.error("キャッシュ読込エラー:", e);
+            }
+        }
+
+        // データを画面に描画する関数
+        function renderCards(data) {
+            // マスターデータで初期化
+            const projectsMap = {};
+            ALL_PROJECTS.forEach(proj => {
+                projectsMap[proj.key] = { ...proj };
+            });
+            
+            // スプレッドシートからの回答をマッピング
+            data.forEach(item => {
+                if (!item) return;
+                const itemClassName = String(item.className || "").trim();
+                const itemTitle = String(item.title || "").trim();
+                
+                // 遠隔遅延情報の判定とフィルタリング
+                if (itemTitle.includes("遅延情報") || itemClassName.includes("遅延情報") || itemTitle === "遅延" || itemClassName === "遅延") {
+                    const waitTime = String(item.waitTime || "").trim().toUpperCase();
+                    const enabled = waitTime !== "" && waitTime !== "OFF" && waitTime !== "0" && waitTime !== "非表示" && waitTime !== "準備中";
+                    const text = String(item.callNumber || item.title || "").trim();
+                    if (window.parent && window.parent !== window) {
+                        window.parent.postMessage({ type: 'updateDelay', enabled: enabled, text: text }, '*');
+                    }
+                    return;
+                }
+                
+                let matchedKey = "";
+                
+                // キーの完全一致確認
+                if (projectsMap[itemClassName]) {
+                    matchedKey = itemClassName;
+                } else if (projectsMap[itemTitle]) {
+                    matchedKey = itemTitle;
+                } else {
+                    // 曖昧マッチング（部分一致など）
+                    const found = ALL_PROJECTS.find(p => 
+                        itemClassName.includes(p.key) || 
+                        p.key.includes(itemClassName) ||
+                        itemTitle.includes(p.key) || 
+                        p.key.includes(itemTitle) ||
+                        (p.className && (itemClassName.includes(p.className) || itemTitle.includes(p.className)))
+                    );
+                    if (found) matchedKey = found.key;
+                }
+                
+                if (matchedKey) {
+                    const proj = projectsMap[matchedKey];
+                    const rawWaitTime = item.waitTime;
+                    const rawCallNumber = item.callNumber;
+                    
+                    if (proj.isFood) {
+                        // 模擬店/食品/整理券配布: 在庫数や混み具合の抽出
+                        proj.waitTime = rawWaitTime !== undefined && rawWaitTime !== null ? String(rawWaitTime).trim() : "";
+                        
+                        let sales = "";
+                        if (rawCallNumber && String(rawCallNumber).trim() !== "") {
+                            sales = String(rawCallNumber).trim();
+                        } else if (itemTitle && String(itemTitle).trim() !== "" && String(itemTitle).trim() !== "準備中" && !itemTitle.includes(proj.key)) {
+                            sales = itemTitle;
+                        }
+                        proj.callNumber = sales;
+                    } else {
+                        // 一般アトラクション/展示企画
+                        let status = "";
+                        if (itemTitle && String(itemTitle).trim() !== "" && String(itemTitle).trim() !== "準備中" && !itemTitle.includes(proj.key)) {
+                            status = String(itemTitle).trim();
+                        } else if (rawWaitTime !== undefined && rawWaitTime !== null && String(rawWaitTime).trim() !== "") {
+                            status = String(rawWaitTime).trim();
+                        }
+                        proj.waitTime = status;
+                        proj.callNumber = rawCallNumber !== undefined && rawCallNumber !== null ? String(rawCallNumber).trim() : "";
+                    }
+                }
+            });
+            
+            // 表示用配列の構築
+            const uniqueData = [];
+            ALL_PROJECTS.forEach(proj => {
+                uniqueData.push(projectsMap[proj.key]);
+            });
+            
+            let salesHtml = "";
+            let waitHtml = "";
+
+            // 各企画ごとにカードを作る
+            uniqueData.forEach(item => {
+                const realClassName = item.className;
+                const realTitle = item.title;
+                const isFood = item.isFood;
+                const isClassShop = realClassName === "2-1" || realClassName === "2-2" || realTitle === "2-1" || realTitle === "2-2";
+                
+                // 待ち時間 or 在庫数の動的判定
+                let label = "待ち時間";
+                let displayValue = item.waitTime !== undefined && item.waitTime !== null ? String(item.waitTime).trim() : "";
+                
+                const hasYellowBox = item.callNumber && String(item.callNumber).trim() !== "";
+                
+                if (isFood && !hasYellowBox) {
+                    label = "在庫数";
+                    const num = Number(displayValue);
+                    if (!isNaN(num) && displayValue !== "") {
+                        if (num === 0) {
+                            displayValue = "<span style='color: #e74c3c; font-weight: 900;'>完売</span>";
+                        } else {
+                            displayValue = num + " 個";
+                        }
+                    } else if (displayValue && displayValue !== "準備中") {
+                        displayValue = displayValue + " 個";
+                    }
+                } else {
+                    label = isFood ? "在庫数" : "待ち時間";
+                    const num = Number(displayValue);
+                    if (!isNaN(num) && displayValue !== "") {
+                        if (num === 0) {
+                            displayValue = isFood ? "在庫なし" : "すぐ入れます";
+                        } else {
+                            displayValue = isFood ? num + " 個" : num + " 分";
+                        }
+                    }
+                }
+
+                // 販売数（整理券番号など）の表示文字列の決定
+                let callDisplay = "";
+                if (item.callNumber && String(item.callNumber).trim() !== "") {
+                    const trimmedCall = String(item.callNumber).trim();
+                    if (!isNaN(Number(trimmedCall)) && trimmedCall !== "") {
+                        callDisplay = trimmedCall + " 個";
+                    } else {
+                        callDisplay = trimmedCall;
+                    }
+                }
+
+                const cardHtml = `
+                <div class="card">
+                    <div class="title">${realTitle}</div>
+                    <div class="info-row">
+                        ${(isFood && hasYellowBox && (!isClassShop || (displayValue === "すぐ入れます" || displayValue === "" || displayValue === "0" || displayValue === "0 分" || displayValue === "在庫なし"))) ? "" : `
+                        <div class="info-box">
+                            <span class="info-label">⏱️ ${label}</span>
+                            <span class="info-value">${displayValue}</span>
+                        </div>`}
+                        
+                        ${callDisplay ? `
+                        <div class="info-box call-box">
+                            <span class="info-label">🛍️ 販売数</span>
+                            <span class="info-value call-value">${callDisplay}</span>
+                        </div>` : ""}
+                    </div>
+                </div>`;
+
+                if (isFood) {
+                    salesHtml += cardHtml;
+                } else {
+                    waitHtml += cardHtml;
+                }
+            });
+            
+            document.getElementById("sales-container").innerHTML = salesHtml || "<h4 style='text-align:center; color:#999; grid-column: 1/-1;'>該当なし</h4>";
+            document.getElementById("wait-container").innerHTML = waitHtml || "<h4 style='text-align:center; color:#999; grid-column: 1/-1;'>該当なし</h4>";
+        }
+
+        // データを取得して画面を作る関数
+        async function loadData() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                
+                if (Array.isArray(data) && data.length > 0) {
+                    localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+                    renderCards(data);
+                    hasLoadedSuccessfully = true;
+                }
+            } catch (error) {
+                console.error("データ取得エラー:", error);
+                
+                const salesContent = document.getElementById("sales-container").innerHTML;
+                const isContainerEmpty = !salesContent || salesContent.includes("読込中...") || salesContent.includes("該当なし");
+                
+                if (isContainerEmpty) {
+                    const errHtml = "<h4 style='color:red; grid-column: 1/-1;'>⚠️ データの取得に失敗しました。電波環境を確認するか、時間をおいてお試しください。</h4>";
+                    document.getElementById("sales-container").innerHTML = errHtml;
+                    document.getElementById("wait-container").innerHTML = errHtml;
+                } else {
+                    console.warn("[Stability] 通信に一時的な問題が発生しましたが、現在の表示を維持します。");
+                }
+
+                if (!hasLoadedSuccessfully) {
+                    setTimeout(loadData, 10000);
+                    return;
+                }
+            }
+        }
+
+
+        // ===== 食堂混雑状況 統合取得ロジック =====
+        const CAFE_GAS = 'https://script.google.com/macros/s/AKfycbxW1PIi27yC-xvZZqzwE4Uy4t9F_6q9broHeEYyveJ2i4g75zpR3F-ynrBkk9JrBMbokg/exec';
+        const CAFE_PROXIES = [
+            url => 'https://corsproxy.io/?' + encodeURIComponent(url),
+            url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+            url => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url),
+            url => url
+        ];
+
+        async function fetchCafeteriaWithRetry(url, maxRetries = 3) {
+            let lastError = null;
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                for (const getProxyUrl of CAFE_PROXIES) {
+                    const targetUrl = getProxyUrl(url);
+                    try {
+                        const response = await fetch(targetUrl, {
+                            redirect: 'follow',
+                            signal: AbortSignal.timeout(5000)
+                        });
+                        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                        const data = await response.json();
+                        if (data && data.cafeteria) {
+                            return data;
+                        }
+                        throw new Error("Invalid format");
+                    } catch (e) {
+                        lastError = e;
+                    }
+                }
+                if (attempt < maxRetries) await new Promise(res => setTimeout(res, 2000));
+            }
+            throw lastError || new Error("Failed");
+        }
+
+        const CAFE_UPDATE_INTERVAL = 20;
+        let cafeSecondsLeft = CAFE_UPDATE_INTERVAL;
+
+        async function loadCafeteriaData() {
+            try {
+                const d = await fetchCafeteriaWithRetry(CAFE_GAS);
+                if (d && d.cafeteria) {
+                    const c = d.cafeteria;
+                    const countNum = Number(c.count) ?? 0;
+                    const maxCount = 150;
+                    const pct = Math.min(100, Math.round(countNum / maxCount * 100));
+
+                    const statusEl = document.getElementById('cafe-status');
+                    const userCountEl = document.getElementById('cafe-user-count');
+                    const progressEl = document.getElementById('cafe-progress');
+
+                    statusEl.textContent = c.status || '--';
+                    userCountEl.textContent = countNum;
+                    progressEl.style.width = pct + '%';
+
+                    // 混雑度に応じた色替え
+                    let color = '#27ae60'; 
+                    let bg = '#e0f8e9';
+                    if (countNum <= 60) {
+                        color = '#27ae60';
+                        bg = '#e0f8e9';
+                    } else if (countNum <= 100) {
+                        color = '#f1c40f'; // 黄
+                        bg = '#fef9e7';
+                    } else if (countNum <= 130) {
+                        color = '#e67e22'; // オレンジ
+                        bg = '#fdf2e9';
+                    } else {
+                        color = '#e74c3c'; // 赤
+                        bg = '#fdeaea';
+                    }
+
+                    statusEl.style.color = color;
+                    statusEl.style.backgroundColor = bg;
+                    statusEl.style.borderColor = '#1a3a28';
+                    progressEl.style.backgroundColor = color;
+                    userCountEl.style.color = color;
+                }
+            } catch (e) {
+                console.error("Cafeteria fetch error:", e);
+                document.getElementById('cafe-status').textContent = '取得失敗';
+                document.getElementById('cafe-status').style.color = '#e74c3c';
+                document.getElementById('cafe-status').style.backgroundColor = '#fdeaea';
+            }
+        }
+
+        function startCafeteriaTimer() {
+            setInterval(() => {
+                cafeSecondsLeft--;
+                if (cafeSecondsLeft <= 0) {
+                    cafeSecondsLeft = CAFE_UPDATE_INTERVAL;
+                    loadCafeteriaData();
+                }
+                document.getElementById('cafe-timer').textContent = `次回更新まで: ${cafeSecondsLeft}秒`;
+            }, 1000);
+        }
+
+        // 起動時にまずキャッシュから即時復元を試みる
+        tryRenderFromCache();
+
+        // 起動時に新鮮なデータを読み込む
+        loadData();
+        loadCafeteriaData();
+        startCafeteriaTimer();
+
+        // その後、15秒ごとに自動で最新データに更新する
+        setInterval(loadData, 15000);
+
+        // ===== 商店・独自企画コンテナの自動スクロール機能 =====
+        // 各コンテナの個別スクロール管理オブジェクト (独立かつホバーでも「常に止まらない」スクロール)
+        const scrollStates = {
+            'sales-container': { isPaused: false, scrollSpeed: 0.4 },
+            'wait-container': { isPaused: false, scrollSpeed: 0.4 }
+        };
+        
+        function autoScroll() {
+            // 一時停止リスナーや判定はユーザーの要望に従い完全撤廃！常にスクロールを実行します！
+            ['sales-container', 'wait-container'].forEach(id => {
+                const container = document.getElementById(id);
+                const state = scrollStates[id];
+                
+                if (container && !state.isPaused && container.scrollHeight > container.clientHeight) {
+                    container.scrollTop += state.scrollSpeed;
+                    
+                    // 堅牢な終端検知 (残り1.5px以下になったら終端と判定し、ズーム端数を完全吸収)
+                    if (container.scrollHeight - container.scrollTop - container.clientHeight <= 1.5) {
+                        state.isPaused = true;
+                        setTimeout(() => {
+                            // 個別にスムーズに一番上に戻す
+                            container.scrollTo({ top: 0, behavior: 'smooth' });
+                            setTimeout(() => {
+                                state.isPaused = false;
+                            }, 1500); // 戻るアニメーション（約1秒）の完了を待って再開
+                        }, 2000); // 終端に達したら2秒間静止して読ませる
+                    }
+                }
+            });
+            requestAnimationFrame(autoScroll);
+        }
+
+        // 初回ロード完了後に少し待ってからスクロール開始（ユーザーの要望により自動スクロールは無効化）
+        // setTimeout(() => { requestAnimationFrame(autoScroll); }, 4000);
+
+    </script>
+
+<script src="app_home_btn.js"></script>
+</body>
+</html>
