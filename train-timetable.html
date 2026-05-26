@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>正確な時刻表 (ボタン横一列版)</title>
+    <style>
+        :root {
+            --jr-kg-color: #e60012;
+            /* 鹿児島本線 赤 */
+            --jr-ks-color: #0072bc;
+            /* 香椎線 青 */
+            --jr-fy-color: #d69d00; /* 福北ゆたか線 黄/金 (若干濃く調整) */
+            --nishitetsu-color: #e59a00; /* 西鉄 黄 (少しオレンジ寄りにして視認性アップ) */
+
+            --bg-color: #f2f4f8;
+            --card-bg: #ffffff;
+            --text-color: #222;
+            --urgent-color: #d32f2f;
+            --normal-color: #333;
+            --time-sub-color: #666;
+            --focus-outline-color: #107532;
+        }
+
+        body {
+            font-family: "BIZ UDPGothic", "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Yu Gothic", sans-serif;
+            font-size: 120%; /* 全体を1.2倍スケールアップ */
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            padding-bottom: 90px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+        
+        /* 共通フォーカススタイル (UD対応) */
+        *:focus-visible {
+            outline: 3px solid var(--focus-outline-color);
+            outline-offset: 3px;
+            border-radius: 4px;
+        }
+
+        /* ヘッダー */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 1.1rem;
+            margin: 0;
+            color: #555;
+            font-weight: bold;
+        }
+
+        #current-clock {
+            font-size: 1.6rem;
+            font-weight: 700;
+            font-family: "Roboto Mono", monospace;
+            font-variant-numeric: tabular-nums;
+            color: #000;
+        }
+
+        /* --- モード切替ボタン (変更点: 横一列) --- */
+        .mode-switcher {
+            display: grid;
+            gap: 8px;
+            /* 間隔を少し狭める */
+            width: 100%;
+            margin-bottom: 20px;
+            /* 5つのボタンを均等に横並び */
+            grid-template-columns: repeat(5, 1fr);
+        }
+
+        .btn {
+            position: relative;
+            width: 100%;
+            border: none;
+            padding: 28px 8px;
+            border-radius: 18px;
+            cursor: pointer;
+            font-weight: 900;
+            font-size: 1.3rem;
+            line-height: 1.3;
+            transition: all 0.2s;
+            background: #e0e3e8;
+            color: #666;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .btn span {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            font-weight: normal;
+            margin-top: 6px;
+            display: block;
+        }
+
+        .key-hint {
+            display: none !important; /* ユーザーの要望により非表示 */
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            font-size: 1.1rem;
+            color: #16a34a;
+            border: 2px solid #16a34a;
+            border-radius: 6px;
+            padding: 2px 8px;
+            background: rgba(255, 255, 255, 1);
+            font-family: monospace;
+            font-weight: 900;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .btn.active {
+            background-color: #fff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            color: #000;
+            transform: translateY(-2px);
+            z-index: 1;
+        }
+
+        .btn.active.btn-jr-kg {
+            border-top: 4px solid var(--jr-kg-color);
+            color: var(--jr-kg-color);
+        }
+
+        .btn.active.btn-nishitetsu {
+            border-top: 4px solid var(--nishitetsu-color);
+            color: #8c6000; /* より暗い琥珀色に変更しコントラスト向上 */
+        }
+
+        .btn.active.btn-jr-ks {
+            border-top: 4px solid var(--jr-ks-color);
+            color: var(--jr-ks-color);
+        }
+
+        .btn.active.btn-jr-fy {
+            border-top: 4px solid var(--jr-fy-color);
+            color: #796600; /* より暗いゴールド・黄色に変更しコントラスト向上 */
+        }
+
+        /* 時刻表コンテナ */
+        .timetable-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .view-area {
+            display: none;
+            height: 100%;
+            gap: 20px;
+        }
+
+        /* ビュー設定 */
+        /* 1列表示 (福間発、西鉄) */
+        .view-jr-mojiko,
+        .view-nishitetsu {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        /* 2列表示 (新宮中央、香椎線、福北ゆたか線) */
+        .view-jr-shingu,
+        .view-jr-ks,
+        .view-jr-fy {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        /* カード */
+        .schedule-card {
+            background: #f0fff4;
+            border-radius: 20px;
+            padding: 20px 28px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            border-bottom: 2px solid #f2f2f2;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .station-name {
+            font-size: 0.95rem;
+            color: #888;
+            display: block;
+        }
+
+        .destination {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #222;
+        }
+
+        .arrive-at {
+            font-size: 0.8rem;
+            color: #666;
+            margin-left: 5px;
+            font-weight: normal;
+        }
+
+        /* リスト */
+        .train-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .train-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 12px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .train-item:last-child {
+            border-bottom: none;
+        }
+
+        .train-item:nth-child(1) {
+            background-color: #fff8e1;
+            border-radius: 14px;
+            border: 2px solid #ffe082;
+            margin-bottom: 10px;
+            padding: 20px 16px;
+            box-shadow: 0 4px 8px rgba(255, 193, 7, 0.1);
+        }
+
+        /* 時刻・行き先表示 */
+        .time-group {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .departure-time {
+            font-size: 2.2rem;
+            font-weight: 800;
+            font-family: "Roboto Mono", monospace;
+            color: #222;
+            line-height: 1;
+            letter-spacing: -1px;
+        }
+
+        .dest-label {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: #444;
+            background-color: #e0e0e0;
+            padding: 4px 10px;
+            border-radius: 6px;
+            margin-right: 5px;
+            white-space: nowrap;
+        }
+
+        .arrival-time-wrap {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.9rem;
+            color: var(--time-sub-color);
+            gap: 3px;
+        }
+
+        .arr-detail {
+            display: flex;
+            gap: 8px;
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+
+        .arr-detail span b {
+            color: #d32f2f;
+        }
+
+        .arrow {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin-right: 4px;
+        }
+
+        .tomorrow-tag {
+            color: #d32f2f;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-left: 4px;
+        }
+
+        .train-item:nth-child(1) .departure-time {
+            font-size: 3.2rem;
+            color: #000;
+        }
+
+        .train-item:nth-child(1) .dest-label {
+            background-color: #ffe082;
+            color: #000;
+            font-size: 1.3rem;
+        }
+
+        .train-item:nth-child(1) .arrival-time-wrap {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #444;
+        }
+
+        .train-item:nth-child(n+2) .departure-time {
+            font-size: 1.9rem;
+            color: #444;
+        }
+
+        /* カウントダウン */
+        .countdown-wrap {
+            text-align: right;
+        }
+
+        .prefix {
+            display: block;
+            font-size: 0.7rem;
+            color: #888;
+            margin-bottom: 2px;
+        }
+
+        .countdown {
+            font-family: "Roboto Mono", monospace;
+            font-variant-numeric: tabular-nums;
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: var(--normal-color);
+        }
+
+        .train-item:nth-child(1) .countdown {
+            font-size: 2rem;
+            color: var(--urgent-color);
+        }
+
+        .train-item:nth-child(1) .prefix {
+            color: #d32f2f;
+            font-weight: bold;
+        }
+
+        .footer-note {
+            margin-top: 20px;
+            font-size: 0.7rem;
+            color: #999;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .no-train {
+            padding: 40px;
+            text-align: center;
+            color: #999;
+        }
+
+        .home-back-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #107532; /* 元 #16a34a より暗い濃緑へ変更 */
+            color: #fff;
+            text-decoration: none;
+            font-weight: 900;
+            font-size: 1.1rem;
+            padding: 12px 35px;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(16, 117, 50, 0.3);
+            transition: opacity 0.2s, transform 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .home-back-btn:hover {
+            background-color: #0c5a26;
+            transform: scale(1.05);
+        }
+
+        /* 放置時の警告表示 */
+        .idle-warning {
+            display: none;
+            /* デフォルト非表示 */
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(211, 47, 47, 0.9);
+            /* 赤系で注意喚起 */
+            color: #fff;
+            padding: 15px 25px;
+            border-radius: 12px;
+            z-index: 2000;
+            font-size: 1rem;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .idle-warning.show {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 縦画面対応 (スマホ縦など幅が狭い時は折り返す) */
+        @media (orientation: portrait) {
+
+            /* ボタンが小さくなりすぎるのを防ぐため、縦画面では3列に折り返す */
+            .mode-switcher {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
+
+            .view-jr-shingu,
+            .view-jr-ks,
+            .view-jr-fy {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+
+            #current-clock {
+                font-size: 2.2rem;
+            }
+
+            .idle-warning {
+                left: 20px;
+                right: 20px;
+                bottom: 80px;
+                text-align: center;
+                /* 縦画面時は下部に大きく */
+            }
+        }
+
+        /* 時間変更バー */
+        #time-debug-bar {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 15px;
+            z-index: 9999;
+            text-align: center;
+        }
+
+        #time-debug-bar.visible {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <script>document.title = "Ver 3.3 Active"; console.log("TIMETABLE_V3_3_START");</script>
+
+    <div id="time-debug-bar">
+        <span>時刻変更: </span>
+        <input type="time" id="debug-time-input" style="font-size:1.2rem;">
+        <button onclick="setCustomTime()" style="padding:5px 10px;">変更</button>
+        <button onclick="resetCustomTime()" style="padding:5px 10px;">リセット</button>
+    </div>
+
+    <header>
+        <h1 id="main-title-v33">福岡エリア 時刻表</h1>
+        <div id="current-clock">--:--:--</div>
+    </header>
+
+    <div class="mode-switcher">
+        <button class="btn btn-jr-kg active" data-mode="jr-shingu" onclick="setMode('jr-shingu')">
+            <span class="key-hint">1</span>
+            JR 新宮中央
+            <span>(博多・福間)</span>
+        </button>
+        <button class="btn btn-jr-kg" data-mode="jr-mojiko" onclick="setMode('jr-mojiko')">
+            <span class="key-hint">2</span>
+            JR 福間発
+            <span>(北九州方面)</span>
+        </button>
+        <button class="btn btn-nishitetsu" data-mode="nishitetsu" onclick="setMode('nishitetsu')">
+            <span class="key-hint">3</span>
+            西鉄 貝塚線
+            <span>(西鉄新宮)</span>
+        </button>
+        <button class="btn btn-jr-ks" data-mode="jr-ks" onclick="setMode('jr-ks')">
+            <span class="key-hint">4</span>
+            JR 香椎線
+            <span>(香椎発)</span>
+        </button>
+        <button class="btn btn-jr-fy" data-mode="jr-fy" onclick="setMode('jr-fy')">
+            <span class="key-hint">5</span>
+            福北ゆたか線
+            <span>(吉塚発)</span>
+        </button>
+    </div>
+
+    <div id="timetableContainer" class="timetable-container">
+
+        <div class="view-area view-jr-shingu">
+            <div class="schedule-card">
+                <div class="card-header">
+                    <span class="station-name">JR 新宮中央駅</span>
+                    <span class="destination">博多 方面</span>
+                </div>
+                <ul class="train-list" id="list-jr-hakata"></ul>
+            </div>
+            <div class="schedule-card">
+                <div class="card-header">
+                    <span class="station-name">JR 新宮中央駅</span>
+                    <span class="destination">福間 方面</span>
+                </div>
+                <ul class="train-list" id="list-jr-fukuma"></ul>
+            </div>
+        </div>
+
+        <div class="view-area view-jr-mojiko">
+            <div class="schedule-card">
+                <div class="card-header">
+                    <span class="station-name">JR 福間駅</span>
+                    <span class="destination">小倉・門司港方面</span>
+                </div>
+                <ul class="train-list" id="list-jr-mojiko"></ul>
+            </div>
+        </div>
+
+        <div class="view-area view-nishitetsu">
+            <div class="schedule-card">
+                <div class="card-header">
+                    <span class="station-name">西鉄 新宮駅</span>
+                    <span class="destination">貝塚 行</span>
+                </div>
+                <ul class="train-list" id="list-nk-kaizuka"></ul>
+            </div>
+        </div>
+
+        <div class="view-area view-jr-ks">
+            <div class="schedule-card">
+                <div class="card-header">
+                    <span class="station-name">JR 香椎駅</span>
+                    <span class="destination">宇美 行</span>
+                </div>
+                <ul class="train-list" id="list-ks-umi"></ul>
+            </div>
+            <div class="schedule-card">
+                <div class="card-header">
+                    <span class="station-name">JR 香椎駅</span>
+                    <span class="destination">西戸崎 行</span>
+                </div>
+                <ul class="train-list" id="list-ks-saitozaki"></ul>
+            </div>
+        </div>
+
+        <div class="view-area view-jr-fy">
+            <div class="schedule-card">
+                <div class="card-header">
+                    <span class="station-name">JR 吉塚駅</span>
+                    <span class="destination">長者原・篠栗</span>
+                </div>
+                <ul class="train-list" id="list-fy-sasaguri"></ul>
+            </div>
+            <div class="schedule-card">
+                <div class="card-header">
+                    <span class="station-name">JR 吉塚駅</span>
+                    <span class="destination">博多 行</span>
+                </div>
+                <ul class="train-list" id="list-fy-hakata"></ul>
+            </div>
+        </div>
+
+    </div>
+
+    <button class="home-back-btn"
+        onclick="if(window.parent && window.parent.closeApp){window.parent.closeApp();}else{window.location.href='ホーム画面.html';}">◀
+        ホームに戻る (Tab)</button>
+
+    <!-- 🛡️ 無操作タイマーは親画面で管理するため削除しました -->
+
+    <div class="footer-note">
+        【操作】 1:新宮中央 / 2:福間発 / 3:西鉄 / 4:香椎線 / 5:福北 / Tab:戻る<br>
+        ※2024年平日ダイヤ。 Ver 3.3 (最終確定版)
+    </div>
+
+    <script>
+        // 所要時間設定 (分) 
+        const travelTimes = {
+            jr_hakata: 24,
+            jr_fukuma: 10,
+            jr_mojiko: 40, // 福間->小倉(快速目安)
+            nk_kaizuka: 23,
+            ks_umi: 28, ks_saitozaki: 20,
+            fy_sasaguri: 12, fy_hakata: 3
+        };
+
+        // ============================================================
+        // 時刻データ (2024年 平日) "HH:MM|行き先"
+        // ============================================================
+        const schedulesRaw = {
+            // 1-1. 新宮中央 -> 博多方面
+            jr_hakata: [
+                "05:27|鳥栖", "05:54|南福岡",
+                "06:21|博多", "06:37|荒尾", "06:47|博多", "06:58|南福岡",
+                "07:10|二日市", "07:21|久留米", "07:34|南福岡", "07:34|二日市", "08:01|久留米", "08:04|南福岡", "08:10|南福岡", "08:18|南福岡",
+                "08:33|鳥栖", "08:45|二日市", "08:55|南福岡", "09:15|鳥栖", "09:30|久留米", "09:49|南福岡", "10:12|荒尾",
+                "10:44|二日市", "11:00|二日市", "11:25|久留米",
+                "11:48|二日市",
+                "12:01|二日市", "12:32|久留米", "12:48|二日市",
+                "13:14|二日市", "13:31|久留米", "13:47|二日市",
+                "14:13|二日市", "14:31|久留米", "14:47|二日市",
+                "15:14|鳥栖", "15:35|鳥栖", "15:48|博多",
+                "16:13|二日市", "16:27|鳥栖", "16:48|荒尾", "16:58|鳥栖",
+                "17:08|南福岡", "17:22|大牟田", "17:47|鳥栖",
+                "18:08|鳥栖", "18:26|久留米", "18:49|鳥栖",
+                "19:01|鳥栖", "19:26|久留米", "19:49|荒尾",
+                "20:08|二日市", "20:22|鳥栖", "20:43|早岐", "20:51|博多",
+                "21:06|二日市", "21:23|羽犬塚", "21:38|江北", "21:57|久留米",
+                "22:25|二日市", "22:54|久留米",
+                "23:21|久留米", "23:55|南福岡"
+            ],
+
+            // 1-2. 新宮中央 -> 福間方面 (普通のみ)
+            jr_fukuma: [
+                "05:23|門司港", "05:43|小倉", "06:03|小倉", "06:14|小倉", "06:24|小倉", "06:45|海老津",
+                "07:03|海老津", "07:08|福間", "07:27|門司港", "07:35|門司港", "07:51|門司港",
+                "08:06|小倉", "08:18|福間", "08:23|門司港", "08:39|福間", "08:43|福間", "08:55|門司港",
+                "09:13|折尾", "09:25|門司港", "09:41|福間", "09:58|折尾",
+                "10:22|福間", "10:44|折尾",
+                "11:00|福間", "11:23|福間", "11:45|折尾",
+                "12:02|福間", "12:22|福間", "12:43|折尾",
+                "13:03|福間", "13:22|福間", "13:44|折尾",
+                "14:02|福間", "14:22|福間", "14:44|折尾",
+                "15:03|福間", "15:22|福間", "15:44|折尾",
+                "16:00|福間", "16:23|福間", "16:51|海老津",
+                "17:16|福間", "17:35|福間", "17:58|海老津",
+                "18:13|福間", "18:23|門司港", "18:34|福間", "18:53|海老津",
+                "19:12|福間", "19:23|門司港", "19:35|福間", "19:53|海老津",
+                "20:13|福間", "20:22|門司港", "20:41|福間",
+                "21:10|小倉", "21:35|門司港", "21:58|小倉",
+                "22:13|門司港", "22:50|門司港",
+                "23:04|赤間", "23:24|門司港", "23:50|折尾",
+                "00:23|福間",
+            ],
+
+            // 2. 福間駅発・北九州方面 (快速・特急・普通 全て含む)
+            jr_fukuma_down_all: [
+                "05:33|門司港", "05:54|小倉",
+                "06:13|小倉", "06:24|小倉", "06:37|大分(特急)", "06:40|小倉", "06:56|海老津",
+                "07:03|小倉(区快)", "07:13|海老津", "07:21|大分(特急)", "07:29|小倉(特急)", "07:31|小倉(区快)", "07:37|門司港", "07:45|門司港", "07:52|宮崎空港(特急)",
+                "08:01|門司港", "08:10|小倉(快速)", "08:20|小倉", "08:35|門司港(快速)", "08:43|門司港", "08:59|門司港(区快)",
+                "09:05|門司港(快速)", "09:16|小倉(快速)", "09:23|折尾", "09:39|門司港", "09:52|門司港(区快)",
+                "10:13|小倉(快速)", "10:18|折尾", "10:38|門司港(区快)", "10:57|門司港(区快)",
+                "11:13|小倉(区快)", "11:18|小倉", "11:38|門司港(区快)", "11:57|門司港(区快)",
+                "12:13|小倉(区快)", "12:18|門司港", "12:38|門司港(区快)", "12:57|門司港(区快)",
+                "13:13|小倉(区快)", "13:18|門司港", "13:38|二日市(普通)", "13:38|門司港(区快)", "13:57|門司港(区快)",
+                "14:13|小倉(区快)", "14:18|門司港", "14:38|門司港(区快)", "14:57|門司港(区快)",
+                "15:13|小倉(区快)", "15:18|門司港", "15:38|門司港(区快)", "15:57|門司港(区快)",
+                "16:13|小倉(区快)", "16:18|門司港", "16:39|門司港", "16:54|小倉(区快)",
+                "17:01|海老津", "17:19|小倉(快速)", "17:30|門司港", "17:42|門司港(区快)", "17:54|小倉(特急)",
+                "18:01|門司港(区快)", "18:14|大分(特急)", "18:17|小倉(快速)", "18:20|海老津", "18:35|大分(特急)", "18:38|門司港", "18:54|門司港(特急)", "18:57|門司港(区快)",
+                "19:05|門司港(快速)", "19:18|門司港(区快)", "19:36|大分(特急)", "19:38|門司港", "19:54|門司港(特急)", "19:57|小倉(区快)",
+                "20:04|海老津", "20:14|大分(特急)", "20:18|門司港(快速)", "20:35|大分(特急)", "20:37|門司港", "20:55|門司港(特急)", "20:59|小倉(区快)",
+                "21:13|小倉(快速)", "21:19|大分(特急)", "21:25|小倉", "21:44|門司港(特急)", "21:48|門司港",
+                "22:01|門司港(快速)", "22:08|小倉", "22:22|大分(特急)", "22:31|門司港", "22:37|門司港(快速)", "22:48|中津(特急)",
+                "23:05|大分(特急)", "23:07|門司港", "23:25|門司港(特急)", "23:34|門司港", "23:59|門司港(特急)",
+                "00:05|小倉", "00:30|赤間", "00:47|赤間"
+            ],
+
+            // 3. 西鉄貝塚線
+            nk_kaizuka: [
+                "05:50|貝塚", "06:11|貝塚", "06:30|貝塚", "06:44|貝塚", "06:56|貝塚",
+                "07:08|貝塚", "07:18|貝塚", "07:28|貝塚", "07:38|貝塚", "07:48|貝塚", "07:58|貝塚",
+                "08:08|貝塚", "08:18|貝塚", "08:28|貝塚", "08:42|貝塚", "08:56|貝塚",
+                "09:13|貝塚", "09:28|貝塚", "09:43|貝塚", "09:58|貝塚",
+                "10:13|貝塚", "10:28|貝塚", "10:43|貝塚", "10:58|貝塚",
+                "11:13|貝塚", "11:28|貝塚", "11:43|貝塚", "11:58|貝塚",
+                "12:13|貝塚", "12:28|貝塚", "12:43|貝塚", "12:58|貝塚",
+                "13:13|貝塚", "13:28|貝塚", "13:43|貝塚", "13:58|貝塚",
+                "14:13|貝塚", "14:28|貝塚", "14:43|貝塚", "14:58|貝塚",
+                "15:13|貝塚", "15:28|貝塚", "15:43|貝塚", "15:58|貝塚",
+                "16:13|貝塚", "16:28|貝塚", "16:43|貝塚", "16:58|貝塚",
+                "17:09|貝塚", "17:19|貝塚", "17:30|貝塚", "17:40|貝塚", "17:50|貝塚",
+                "18:00|貝塚", "18:10|貝塚", "18:20|貝塚", "18:30|貝塚", "18:40|貝塚", "18:50|貝塚",
+                "19:00|貝塚", "19:10|貝塚", "19:20|貝塚", "19:30|貝塚", "19:40|貝塚", "19:50|貝塚",
+                "20:00|貝塚", "20:10|貝塚", "20:20|貝塚", "20:30|貝塚", "20:45|貝塚",
+                "21:01|貝塚", "21:16|貝塚", "21:31|貝塚", "21:46|貝塚",
+                "22:01|貝塚", "22:16|貝塚", "22:46|貝塚",
+                "23:00|貝塚", "23:20|貝塚", "23:40|貝塚"
+            ],
+
+            // 4. 香椎線
+            ks_umi: [
+                "05:18|宇美", "05:37|宇美", "05:56|宇美", "06:12|宇美", "06:33|宇美",
+                "07:16|宇美", "07:42|宇美", "08:05|宇美", "08:28|宇美", "08:54|宇美",
+                "09:23|宇美", "09:52|宇美", "10:17|宇美", "10:48|宇美",
+                "11:18|宇美", "11:50|宇美", "12:17|宇美", "12:50|宇美",
+                "13:17|宇美", "13:50|宇美", "14:17|宇美", "14:50|宇美",
+                "15:17|宇美", "15:35|宇美", "15:55|宇美",
+                "16:17|宇美", "16:34|宇美", "16:54|宇美",
+                "17:18|宇美", "17:35|宇美", "17:56|宇美",
+                "18:16|宇美", "18:36|宇美", "18:58|宇美",
+                "19:17|宇美", "19:38|宇美", "19:59|宇美",
+                "20:17|宇美", "20:39|宇美", "21:00|宇美", "21:18|宇美", "21:55|宇美",
+                "22:28|宇美", "23:06|宇美", "23:50|宇美"
+            ],
+            ks_saitozaki: [
+                "06:14|西戸崎", "06:35|西戸崎", "06:59|西戸崎",
+                "07:19|西戸崎", "07:36|西戸崎", "08:13|西戸崎", "08:37|西戸崎", "08:58|西戸崎",
+                "09:29|西戸崎", "10:10|西戸崎", "10:40|西戸崎",
+                "11:09|西戸崎", "11:39|西戸崎", "12:09|西戸崎", "12:38|西戸崎",
+                "13:09|西戸崎", "13:38|西戸崎", "14:09|西戸崎", "14:38|西戸崎",
+                "15:09|西戸崎", "15:39|西戸崎", "16:00|西戸崎", "16:17|西戸崎", "16:37|西戸崎",
+                "17:04|西戸崎", "17:21|西戸崎", "17:43|西戸崎",
+                "18:01|西戸崎", "18:22|西戸崎", "18:44|西戸崎",
+                "19:03|西戸崎", "19:22|西戸崎", "19:45|西戸崎",
+                "20:03|西戸崎", "20:22|西戸崎", "20:46|西戸崎",
+                "21:19|西戸崎", "21:46|西戸崎", "22:13|西戸崎", "22:49|西戸崎",
+                "23:16|西戸崎", "23:45|雁ノ巣"
+            ],
+
+            // 5. 福北ゆたか線 (吉塚発)
+            fy_sasaguri: [
+                "06:15|直方", "06:28|小倉", "06:41|篠栗", "06:41|直方",
+                "07:01|直方", "07:14|篠栗", "07:29|折尾", "07:38|篠栗", "07:46|長者原", "07:59|篠栗",
+                "08:06|直方", "08:20|篠栗", "08:30|直方", "08:39|篠栗", "08:48|直方", "08:57|篠栗",
+                "09:06|直方", "09:16|篠栗", "09:33|直方", "09:42|直方",
+                "10:03|直方", "10:14|直方", "10:39|新飯塚", "10:56|直方",
+                "11:14|直方", "11:31|新飯塚", "11:54|直方",
+                "12:14|直方", "12:31|新飯塚", "12:54|直方",
+                "13:14|直方", "13:31|新飯塚", "13:56|直方",
+                "14:14|直方", "14:31|新飯塚", "14:56|直方",
+                "15:14|直方", "15:31|直方", "15:48|直方",
+                "16:06|篠栗", "16:25|直方", "16:34|直方", "16:43|篠栗",
+                "17:00|直方", "17:10|新飯塚", "17:26|直方", "17:36|直方", "17:47|篠栗", "17:59|直方",
+                "18:13|新飯塚", "18:26|直方", "18:37|直方", "18:47|篠栗",
+                "19:01|直方", "19:13|直方", "19:25|直方", "19:36|直方", "19:47|篠栗",
+                "20:01|直方", "20:12|直方", "20:22|篠栗", "20:31|直方", "20:38|折尾", "20:51|篠栗",
+                "21:04|直方", "21:17|直方", "21:26|篠栗", "21:41|直方", "21:47|直方",
+                "22:13|直方", "22:31|直方", "22:59|篠栗",
+                "23:08|直方", "23:23|直方", "23:43|新飯塚",
+            ],
+            fy_hakata: [
+                "06:13|博多", "06:28|博多", "06:49|博多", "06:59|博多",
+                "07:14|博多", "07:29|博多", "07:46|博多", "07:55|博多", "07:59|博多",
+                "08:08|博多", "08:14|博多", "08:20|博多", "08:30|博多", "08:38|博多", "08:48|博多", "08:57|博多", "09:06|博多", "09:14|博多", "09:24|博多", "09:42|博多",
+                "09:07|博多", "09:15|博多", "09:24|博多", "09:33|博多", "09:50|博多",
+                "10:03|博多", "10:15|博多", "10:24|博多", "10:46|博多",
+                "11:14|博多", "11:38|博多",
+                "12:00|博多", "12:14|博多", "12:31|博多",
+                "13:00|博多", "13:14|博多", "13:31|博多", "13:56|博多",
+                "14:14|博多", "14:31|博多", "14:56|博多",
+                "15:14|博多", "15:31|博多", "15:57|博多",
+                "16:14|博多", "16:33|博多", "16:50|博多",
+                "17:00|博多", "17:17|博多", "17:26|博多", "17:36|博多", "17:46|博多", "17:58|博多",
+                "18:13|博多", "18:26|博多", "18:36|博多", "18:46|博多",
+                "19:00|博多", "19:12|博多", "19:23|博多", "19:36|博多", "19:47|博多",
+                "20:00|博多", "20:12|博多", "20:22|博多", "20:38|博多", "20:51|博多",
+                "21:04|博多", "21:17|博多", "21:33|博多", "21:47|博多",
+                "22:04|博多", "22:20|博多", "22:45|博多",
+                "23:08|博多", "23:32|博多", "23:42|博多",
+            ]
+        };
+
+        // 文字列"HH:MM|行き先"をオブジェクトに変換
+        function parseSchedule(rawArray) {
+            return rawArray.map(item => {
+                const parts = item.split('|');
+                let dest = parts[1];
+                if (!dest.endsWith('行') && !dest.endsWith('(特急)') && !dest.endsWith('(快速)') && !dest.endsWith('(区快)')) {
+                    dest += '行';
+                }
+                return { t: parts[0], d: dest };
+            });
+        }
+
+        const schedules = {
+            jr_hakata: parseSchedule(schedulesRaw.jr_hakata),
+            jr_fukuma: parseSchedule(schedulesRaw.jr_fukuma),
+            jr_fukuma_down_all: parseSchedule(schedulesRaw.jr_fukuma_down_all),
+            nk_kaizuka: parseSchedule(schedulesRaw.nk_kaizuka),
+            ks_umi: parseSchedule(schedulesRaw.ks_umi),
+            ks_saitozaki: parseSchedule(schedulesRaw.ks_saitozaki),
+            fy_sasaguri: parseSchedule(schedulesRaw.fy_sasaguri),
+            fy_hakata: parseSchedule(schedulesRaw.fy_hakata)
+        };
+
+        // ============================================================
+        // ロジック
+        // ============================================================
+        let customTimeOffset = 0;
+
+        function getAppTime() {
+            return new Date(Date.now() + customTimeOffset);
+        }
+
+        function updateClock() {
+            const now = getAppTime();
+            const timeStr = now.toLocaleTimeString('ja-JP', { hour12: false });
+            document.getElementById('current-clock').textContent = timeStr;
+        }
+
+        function setCustomTime() {
+            const input = document.getElementById('debug-time-input').value;
+            if (!input) return;
+            const now = new Date();
+            const [h, m] = input.split(':').map(Number);
+            const target = new Date();
+            target.setHours(h, m, 0, 0);
+            customTimeOffset = target.getTime() - now.getTime();
+            updateTimetables();
+            updateClock();
+            document.getElementById('time-debug-bar').classList.remove('visible');
+        }
+        function resetCustomTime() {
+            customTimeOffset = 0;
+            updateTimetables();
+            updateClock();
+            document.getElementById('time-debug-bar').classList.remove('visible');
+        }
+
+        function setMode(mode) {
+            const container = document.getElementById('timetableContainer');
+            const areas = container.querySelectorAll('.view-area');
+            areas.forEach(a => a.style.display = 'none');
+
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            container.className = 'timetable-container';
+
+            const targetBtn = document.querySelector(`.btn[data-mode="${mode}"]`);
+            if (targetBtn) targetBtn.classList.add('active');
+
+            const targetArea = document.querySelector(`.view-${mode}`);
+            if (targetArea) {
+                // 2列表示が必要なモード
+                const isTwoCol = (mode === 'jr-shingu' || mode === 'jr-ks' || mode === 'jr-fy');
+                if (isTwoCol) {
+                    if (window.innerWidth <= 768) {
+                        targetArea.style.display = 'grid';
+                        targetArea.style.gridTemplateColumns = '1fr';
+                    } else {
+                        targetArea.style.display = 'grid';
+                        targetArea.style.gridTemplateColumns = '1fr 1fr';
+                    }
+                } else {
+                    targetArea.style.display = 'grid';
+                    targetArea.style.gridTemplateColumns = '1fr';
+                }
+            }
+
+            updateTimetables();
+        }
+
+        function calcArrivalTime(depStr, durationMins) {
+            let [h, m] = depStr.split(':').map(Number);
+            if (h < 4) h += 24;
+            let totalM = h * 60 + m + durationMins;
+            let newH = Math.floor(totalM / 60);
+            let newM = totalM % 60;
+            if (newH >= 24) newH -= 24;
+            return `${newH.toString().padStart(2, '0')}:${newM.toString().padStart(2, '0')}`;
+        }
+
+        function getCountdown(targetTimeString, forceNextDay) {
+            const now = getAppTime();
+            let [targetH, targetM] = targetTimeString.split(':').map(Number);
+            let addDay = 0;
+            const currentH = now.getHours();
+
+            if (currentH >= 20 && targetH < 4) { addDay = 1; }
+            if (forceNextDay) {
+                if (currentH >= 4) { addDay = 1; } else { addDay = 0; }
+            }
+
+            const targetDate = new Date(now);
+            targetDate.setDate(now.getDate() + addDay);
+            targetDate.setHours(targetH, targetM, 0, 0);
+
+            let diffMs = targetDate - now;
+            if (diffMs < 0) return null;
+
+            const totalSeconds = Math.floor(diffMs / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            let result = "";
+            if (hours > 0) result += `${hours}時間 `;
+            result += `${minutes.toString().padStart(2, '0')}分 ${seconds.toString().padStart(2, '0')}秒`;
+            return result;
+        }
+
+        function renderList(elementId, scheduleObjArray, duration, filterFn) {
+            const listEl = document.getElementById(elementId);
+            const now = getAppTime();
+            const currentH = now.getHours();
+            const currentMinutes = currentH * 60 + now.getMinutes();
+
+            let candidates = [];
+
+            scheduleObjArray.forEach(item => {
+                if (filterFn && !filterFn(item)) return;
+
+                let [h, m] = item.t.split(':').map(Number);
+                let trainMinutes = h * 60 + m;
+                if (h < 4) trainMinutes += 24 * 60;
+
+                let nowMinutesCalc = currentMinutes;
+                if (currentH < 4) nowMinutesCalc += 24 * 60;
+
+                if (trainMinutes > nowMinutesCalc) {
+                    candidates.push({ ...item, isNextDay: false });
+                }
+            });
+
+            if (candidates.length < 4) {
+                const needed = 4 - candidates.length;
+                let added = 0;
+                for (let i = 0; i < scheduleObjArray.length && added < needed; i++) {
+                    const item = scheduleObjArray[i];
+                    if (filterFn && !filterFn(item)) continue;
+                    candidates.push({ ...item, isNextDay: true });
+                    added++;
+                }
+            }
+
+            const displayList = candidates.slice(0, 4);
+
+            listEl.innerHTML = '';
+
+            displayList.forEach((item, index) => {
+                const depTime = item.t;
+                const destName = item.d;
+                const arrTime = calcArrivalTime(depTime, duration);
+                const countdownText = getCountdown(depTime, item.isNextDay);
+
+                if (!countdownText) return;
+
+                const prefix = (index === 0) ? '出発まで' : 'あと';
+                let tomorrowLabel = "";
+                if (item.isNextDay) {
+                    if (currentH >= 4) tomorrowLabel = '<span class="tomorrow-tag">(明日)</span>';
+                }
+
+                const li = document.createElement('li');
+                li.className = 'train-item';
+
+                let detailHtml = "";
+                // 各駅への到着予想を表示
+                if (elementId === 'list-jr-hakata') {
+                    const arrKashii = calcArrivalTime(depTime, 8);
+                    const arrYoshizuka = calcArrivalTime(depTime, 18);
+                    detailHtml = `
+                        <div class="arr-detail">
+                            <span>香椎<b>${arrKashii}</b></span>
+                            <span>吉塚<b>${arrYoshizuka}</b></span>
+                            <span>博多<b>${arrTime}</b></span>
+                        </div>
+                    `;
+                } else if (elementId === 'list-jr-fukuma' || elementId === 'list-jr-mojiko') {
+                    const arrKoga = calcArrivalTime(depTime, 4);
+                    const arrFukuma = calcArrivalTime(depTime, 10);
+                    // モードB(福間発)の場合は、便宜上出発時刻を到着時刻とする(または駅名を調整)
+                    const isMojikoMode = (elementId === 'list-jr-mojiko');
+                    detailHtml = `
+                        <div class="arr-detail">
+                            ${isMojikoMode ? '' : `<span>古賀<b>${arrKoga}</b></span>`}
+                            <span>福間<b>${isMojikoMode ? depTime : arrFukuma}</b></span>
+                        </div>
+                    `;
+                }
+
+                li.innerHTML = `
+                    <div class="time-group" style="flex-direction:column; align-items:flex-start; gap:2px;">
+                        <div style="display:flex; align-items:baseline; gap:8px;">
+                            <span class="departure-time">${depTime}${tomorrowLabel}</span>
+                            <span class="dest-label" style="font-size:0.8rem; padding:1px 6px;">${destName}</span>
+                        </div>
+                        <div class="arrival-time-wrap">
+                            ${detailHtml}
+                        </div>
+                    </div>
+                    <div class="countdown-wrap">
+                        <span class="prefix">${prefix}</span>
+                        <span class="countdown">${countdownText}</span>
+                    </div>
+                `;
+                listEl.appendChild(li);
+            });
+        }
+
+        function updateTimetables() {
+            renderList('list-jr-hakata', schedules.jr_hakata, travelTimes.jr_hakata);
+            renderList('list-jr-fukuma', schedules.jr_fukuma, travelTimes.jr_fukuma);
+
+            // [3] 福間発 (福間行を除外...といってもデータにはないが安全のため)
+            renderList('list-jr-mojiko', schedules.jr_fukuma_down_all, travelTimes.jr_mojiko, (item) => {
+                return item.d !== '福間行';
+            });
+
+            renderList('list-nk-kaizuka', schedules.nk_kaizuka, travelTimes.nk_kaizuka);
+            renderList('list-ks-umi', schedules.ks_umi, travelTimes.ks_umi);
+            renderList('list-ks-saitozaki', schedules.ks_saitozaki, travelTimes.ks_saitozaki);
+            renderList('list-fy-sasaguri', schedules.fy_sasaguri, travelTimes.fy_sasaguri);
+            renderList('list-fy-hakata', schedules.fy_hakata, travelTimes.fy_hakata);
+        }
+
+        // ============================================================
+        // 自動戻り機能 (00:00 - 11:00 のみ有効、11時以降は無効)
+        // ============================================================
+        let idleTimeElapsed = 0;
+        const IDLE_LIMIT = 120; // 120秒(2分)で移動
+        const WARNING_THRESHOLD = 5; // 残り5秒で警告
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("TIMETABLE_V3.2_LOADED");
+            updateClock();
+            setMode('jr-shingu'); // 初期表示
+            setInterval(updateClock, 1000);
+            setInterval(updateTimetables, 1000);
+        });
+
+
+
+        // 起動時およびクリック時に強制フォーカス
+        const focusWindow = () => { window.focus(); document.body.focus(); };
+        window.addEventListener('load', () => setTimeout(focusWindow, 100));
+        document.addEventListener('click', focusWindow);
+
+        // その他の操作イベント監視
+        ['mousemove', 'mousedown', 'touchstart', 'click', 'scroll'].forEach(evt => {
+            window.addEventListener(evt, () => {});
+        });
+
+        if (window !== window.parent) {
+            const hBtn = document.querySelector('.home-back-btn');
+            if (hBtn) hBtn.style.display = 'none';
+        }
+    </script>
+<script src="app_home_btn.js"></script>
+</body>
+
+</html>
