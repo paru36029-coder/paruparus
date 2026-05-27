@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>食堂混雑状況</title>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'M PLUS Rounded 1c', sans-serif;
+            background: linear-gradient(135deg, #ecfdf5, #f0fdf4);
+            margin: 0;
+            padding: 60px 16px 24px;
+            min-height: 100vh;
+            min-height: 100dvh;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: #064e3b;
+            margin: 0 0 24px;
+            text-align: center;
+        }
+
+        .status-card {
+            background: white;
+            border: 4px solid #1a3a28;
+            box-shadow: 6px 6px 0 #1a3a28;
+            border-radius: 20px;
+            padding: 28px 28px 24px;
+            width: 100%;
+            max-width: 480px;
+            box-sizing: border-box;
+        }
+
+        .status-label {
+            font-size: 1rem;
+            font-weight: 900;
+            color: #27ae60;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-badge {
+            font-size: 2rem;
+            font-weight: 900;
+            padding: 10px 24px;
+            border-radius: 16px;
+            border: 3px solid #1a3a28;
+            box-shadow: 3px 3px 0 #1a3a28;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+            transition: all 0.5s ease;
+            background: #e0f8e9;
+            color: #1a3a28;
+        }
+
+        .count-area {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .count-num {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: #27ae60;
+            line-height: 1;
+        }
+
+        .count-unit {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: #1a3a28;
+        }
+
+        .count-max {
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .progress-wrap {
+            width: 100%;
+            height: 28px;
+            background: #f0f0f0;
+            border: 3px solid #1a3a28;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: inset 1px 1px 4px rgba(0,0,0,0.15);
+            margin-bottom: 16px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: #27ae60;
+            border-radius: 12px;
+            transition: width 0.8s ease, background-color 0.8s ease;
+        }
+
+        .timer {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #888;
+            text-align: right;
+        }
+
+        .capacity-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #aaa;
+            margin-bottom: 4px;
+            padding: 0 2px;
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body>
+    <h1>🍚 食堂混雑状況</h1>
+
+    <div class="status-card">
+        <div class="status-label">現在の混雑度</div>
+        <div class="status-badge" id="cafe-status">取得中...</div>
+
+        <div class="count-area">
+            <span class="count-num" id="cafe-count">--</span>
+            <span class="count-unit">人</span>
+            <span class="count-max">/ 定員 150 人</span>
+        </div>
+
+        <div class="capacity-labels">
+            <span>0人</span>
+            <span>混雑 75人</span>
+            <span>定員 150人</span>
+        </div>
+        <div class="progress-wrap">
+            <div class="progress-fill" id="cafe-progress"></div>
+        </div>
+
+        <div class="timer" id="cafe-timer">更新中...</div>
+    </div>
+
+    <script>
+        const CAFE_GAS = 'https://script.google.com/macros/s/AKfycbxW1PIi27yC-xvZZqzwE4Uy4t9F_6q9broHeEYyveJ2i4g75zpR3F-ynrBkk9JrBMbokg/exec';
+        const CAFE_PROXIES = [
+            url => 'https://corsproxy.io/?' + encodeURIComponent(url),
+            url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+            url => url
+        ];
+
+        async function fetchWithRetry(url) {
+            for (const getProxy of CAFE_PROXIES) {
+                try {
+                    const res = await fetch(getProxy(url), { redirect: 'follow', signal: AbortSignal.timeout(5000) });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    const data = await res.json();
+                    if (data && data.cafeteria) return data;
+                } catch (e) {}
+            }
+            throw new Error('全プロキシ失敗');
+        }
+
+        const INTERVAL = 20;
+        let secondsLeft = INTERVAL;
+
+        async function loadData() {
+            try {
+                const d = await fetchWithRetry(CAFE_GAS);
+                const c = d.cafeteria;
+                const countNum = Number(c.count) || 0;
+                const maxCount = 150;
+                const pct = Math.min(100, Math.round(countNum / maxCount * 100));
+
+                const statusEl = document.getElementById('cafe-status');
+                document.getElementById('cafe-count').textContent = countNum;
+                document.getElementById('cafe-progress').style.width = pct + '%';
+                statusEl.textContent = c.status || '--';
+
+                let color = '#27ae60', bg = '#e0f8e9';
+                if (countNum <= 60)       { color = '#27ae60'; bg = '#e0f8e9'; }
+                else if (countNum <= 100) { color = '#f1c40f'; bg = '#fef9e7'; }
+                else if (countNum <= 130) { color = '#e67e22'; bg = '#fdf2e9'; }
+                else                      { color = '#e74c3c'; bg = '#fdeaea'; }
+
+                statusEl.style.color = color;
+                statusEl.style.backgroundColor = bg;
+                document.getElementById('cafe-progress').style.backgroundColor = color;
+                document.getElementById('cafe-count').style.color = color;
+            } catch (e) {
+                document.getElementById('cafe-status').textContent = '取得失敗';
+                document.getElementById('cafe-status').style.color = '#e74c3c';
+                document.getElementById('cafe-status').style.backgroundColor = '#fdeaea';
+            }
+        }
+
+        setInterval(() => {
+            secondsLeft--;
+            if (secondsLeft <= 0) {
+                secondsLeft = INTERVAL;
+                loadData();
+            }
+            document.getElementById('cafe-timer').textContent = `次回更新まで: ${secondsLeft}秒`;
+        }, 1000);
+
+        loadData();
+    </script>
+    <script src="app_home_btn.js"></script>
+</body>
+</html>
