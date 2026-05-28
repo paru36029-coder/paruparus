@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>ぽちっと！新宮ナビ</title>
+    <!-- 丸ゴシック体の読み込み -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style_v4.css">
+
+</head>
+
+<body tabindex="-1">
+    <!-- 準備中オーバーレイ -->
+    <div id="maintenance-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(240, 249, 241, 0.95); backdrop-filter: blur(10px); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+        <div style="background: white; padding: 50px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 3px solid #16a34a;">
+            <h1 style="font-size: 3.5rem; color: #064e3b; margin: 0 0 20px 0; font-weight: 900; letter-spacing: 2px;">準備中</h1>
+            <p style="font-size: 1.5rem; color: #333; margin: 0; font-weight: 700;">現在、公開に向けて準備中です。<br>もうしばらくお待ちください。</p>
+        </div>
+    </div>
+
+    <!-- 管理画面モーダル（独立した管理者設定Webアプリ admin-control.html へ移行し、撤廃しました） -->
+
+    <div class="top-bar">
+        <div id="current-time">00:00:00</div>
+    </div>
+
+    <div id="home-view"
+        style="display: flex; flex-direction: column; width: 100%; height: calc(100vh - var(--top-bar-height)); height: calc(100dvh - var(--top-bar-height)); margin-top: var(--top-bar-height);">
+
+        <div class="main-content-split">
+            <!-- 左パネル：カウントダウン＋アプリ -->
+            <div class="left-panel">
+                <!-- ★ 遅延情報ウィジェット -->
+                <div id="delay-widget" class="delay-widget" style="display: none;">
+                    <div class="delay-label">⚠️ スケジュール遅延情報</div>
+                    <div class="delay-text" id="delay-text-display">遅延情報はありません</div>
+                </div>
+                <div class="apps-area glass-panel" style="flex:1;">
+                    <div class="panel-label">📱 アプリメニュー</div>
+                    <div class="apps-row-vertical" id="dynamic-apps-container">
+                        <!-- script.jsによって動的に生成されます -->
+                    </div>
+                </div>
+            </div>
+            <!-- 右パネル：メインコンテンツ（時刻表等） -->
+            <div class="right-panel" style="position:relative;" tabindex="-1">
+                <div class="info-card-full" style="height:100%; position: relative; overflow: hidden;" tabindex="-1">
+                    <iframe id="main-panel-iframe" src="wait-time-right.html" tabindex="-1"
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 25px;"></iframe>
+
+                    <!-- 究極の2択：統合UI -->
+                    <div id="integrated-choice-app" class="integrated-app-container" style="display: none;">
+                        <div class="choice-yesterday-section">
+                            <div class="choice-y-title">昨日の結果 (<span id="choice-y-date">--/--</span>)</div>
+                            <div class="choice-y-q" id="choice-y-q-text">読み込み中...</div>
+                            <div class="choice-y-options-row"><span id="choice-y-opt1"></span><span id="choice-y-opt2"></span></div>
+                            <div class="choice-y-bar-wrap">
+                                <div class="choice-y-bar choice-y-b1" id="choice-y-bar1">--%</div>
+                                <div class="choice-y-bar choice-y-b2" id="choice-y-bar2">--%</div>
+                            </div>
+                        </div>
+
+                        <div class="choice-top-section">
+                            <div class="choice-header-row">
+                                <div class="choice-main-title">今日の究極の2択</div>
+                                <div class="choice-date-info">No.<span id="choice-q-num"></span> <span id="choice-date"></span></div>
+                            </div>
+                            <div class="choice-q-text" id="choice-q">読込中...</div>
+                        </div>
+
+                        <div class="choice-btns">
+                            <button class="choice-btn choice-b1" onclick="choice_vote(1)" id="choice-b1"><span class="choice-key">9</span><span id="choice-t1">A</span></button>
+                            <button class="choice-btn choice-b2" onclick="choice_vote(2)" id="choice-b2"><span class="choice-key">0</span><span id="choice-t2">B</span></button>
+                        </div>
+                        <p id="choice-msg" class="choice-status"></p>
+
+                        <div class="choice-res-box">
+                            <div class="choice-res-head"><span>今日の投票率</span><span id="choice-total">計 0 票</span></div>
+                            <div class="choice-bar-wrap">
+                                <div class="choice-bar choice-bb1" id="choice-br1">0%</div>
+                                <div class="choice-bar choice-bb2" id="choice-br2">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 🛡️ 透明なガードパネル：タッチ・スクロール有効化のため撤廃しました -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- 全画面アプリ表示用 -->
+    <div id="app-fullscreen-view"
+        style="display: none; width: 100%; height: calc(100vh - var(--top-bar-height)); height: calc(100dvh - var(--top-bar-height)); z-index: 1000; position: absolute; top: var(--top-bar-height); left: 0; flex-direction: column; background: #f0f9f1;">
+        <div
+            style="background: rgba(255,255,255,0.8); backdrop-filter: blur(15px); padding: 18px 45px; display: flex; justify-content: flex-start; align-items: center; gap: 20px; border-bottom: 3px solid #16a34a; box-shadow: 0 4px 20px rgba(0,0,0,0.05); display: none;">
+            <h1 id="app-title"
+                style="margin: 0; font-size: 2.2rem; color: #064e3b; font-weight: 900; letter-spacing: 2px;">アプリ名</h1>
+        </div>
+        <div style="flex-grow: 1; position: relative; width: 100%; overflow: hidden;">
+            <iframe id="app-iframe" src=""
+                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; background: transparent;"></iframe>
+        </div>
+    </div>
+
+    <!-- ポップアップアプリ表示用 -->
+    <div id="popup-window" class="popup-window" style="display: none;">
+        <div id="popup-header" class="popup-header">
+            <button class="popup-close-btn" onclick="closePopupApp()">✕ 閉じる</button>
+            <span id="popup-title" style="font-weight:bold; color:#064e3b; font-size: 1.2rem;">アプリ名</span>
+        </div>
+        <div class="popup-content" style="position: relative; overflow: hidden;">
+            <iframe id="popup-iframe" src="" frameborder="0" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe>
+            <div id="popup-overlay" class="popup-overlay"
+                style="display: none; position:absolute; top:0; left:0; width:100%; height:100%;"></div>
+        </div>
+    </div>
+
+    <!-- 🚨 1分切り時の画面端赤フラッシュ -->
+    <div id="urgent-border-flash"></div>
+
+    <script src="script_v4.js?v=9"></script>
+</body>
+
+</html>
